@@ -94,9 +94,21 @@ class QuizScene extends Phaser.Scene {
     }
     
     displayQuestion() {
+        // 確保題目存在
         if (!this.currentQuestion) {
-            // 沒有題目時使用預設
+            console.warn('QuizScene: currentQuestion 不存在，使用預設題目');
             this.currentQuestion = this.getDefaultQuestion();
+        }
+        
+        // 確保題目有必要嘅屬性
+        if (!this.currentQuestion.question) {
+            this.currentQuestion.question = '這是一道測試題目';
+        }
+        if (!this.currentQuestion.options || !Array.isArray(this.currentQuestion.options)) {
+            this.currentQuestion.options = ['選項A', '選項B', '選項C', '選項D'];
+        }
+        if (typeof this.currentQuestion.correct !== 'number') {
+            this.currentQuestion.correct = 0;
         }
         
         // 顯示題目
@@ -108,6 +120,12 @@ class QuizScene extends Phaser.Scene {
     
     createAnswerButtons(options) {
         this.answerButtons.removeAll(true);
+        
+        // 檢查 options 係咪有效
+        if (!options || !Array.isArray(options) || options.length === 0) {
+            console.error('QuizScene: options 無效', options);
+            return;
+        }
         
         const buttonWidth = 280;
         const buttonHeight = 60;
