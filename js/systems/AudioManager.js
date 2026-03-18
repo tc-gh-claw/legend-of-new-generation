@@ -52,50 +52,18 @@ class AudioManager {
     
     /**
      * 在 BootScene 的 preload 中調用，載入所有音效
+     * 注意：音效文件不存在時會跳過，避免載入失敗
      */
     static preload(scene) {
+        // 音效文件暫時不存在，跳過載入
+        // 等音效文件準備好後取消註釋以下代碼
+        
         // ===== UI 音效 =====
-        scene.load.audio('sfx-ui-click', 'assets/audio/sfx/ui/click.wav');
-        scene.load.audio('sfx-ui-hover', 'assets/audio/sfx/ui/hover.wav');
-        scene.load.audio('sfx-ui-open', 'assets/audio/sfx/ui/open.wav');
-        scene.load.audio('sfx-ui-close', 'assets/audio/sfx/ui/close.wav');
-        scene.load.audio('sfx-ui-cancel', 'assets/audio/sfx/ui/cancel.wav');
-        scene.load.audio('sfx-ui-confirm', 'assets/audio/sfx/ui/confirm.wav');
+        // scene.load.audio('sfx-ui-click', 'assets/audio/sfx/ui/click.wav');
+        // scene.load.audio('sfx-ui-hover', 'assets/audio/sfx/ui/hover.wav');
+        // ... 更多音效
         
-        // ===== 戰鬥音效 =====
-        scene.load.audio('sfx-combat-attack', 'assets/audio/sfx/combat/attack.wav');
-        scene.load.audio('sfx-combat-hit', 'assets/audio/sfx/combat/hit.wav');
-        scene.load.audio('sfx-combat-miss', 'assets/audio/sfx/combat/miss.wav');
-        scene.load.audio('sfx-combat-victory', 'assets/audio/sfx/combat/victory.wav');
-        scene.load.audio('sfx-combat-defeat', 'assets/audio/sfx/combat/defeat.wav');
-        scene.load.audio('sfx-combat-levelup', 'assets/audio/sfx/combat/levelup.wav');
-        
-        // ===== 魔法音效 (按學科分類) =====
-        scene.load.audio('sfx-magic-math', 'assets/audio/sfx/magic/math.wav');
-        scene.load.audio('sfx-magic-science', 'assets/audio/sfx/magic/science.wav');
-        scene.load.audio('sfx-magic-english', 'assets/audio/sfx/magic/english.wav');
-        scene.load.audio('sfx-magic-general', 'assets/audio/sfx/magic/general.wav');
-        scene.load.audio('sfx-magic-heal', 'assets/audio/sfx/magic/heal.wav');
-        scene.load.audio('sfx-magic-shield', 'assets/audio/sfx/magic/shield.wav');
-        
-        // ===== 環境音效 =====
-        scene.load.audio('sfx-env-footstep', 'assets/audio/sfx/environment/footstep.wav');
-        scene.load.audio('sfx-env-encounter', 'assets/audio/sfx/environment/encounter.wav');
-        scene.load.audio('sfx-env-save', 'assets/audio/sfx/environment/save.wav');
-        scene.load.audio('sfx-env-item', 'assets/audio/sfx/environment/item.wav');
-        
-        // ===== 背景音樂 =====
-        scene.load.audio('bgm-menu', 'assets/audio/music/bgm/menu.ogg');
-        scene.load.audio('bgm-world', 'assets/audio/music/bgm/world.ogg');
-        scene.load.audio('bgm-town', 'assets/audio/music/bgm/town.ogg');
-        
-        scene.load.audio('bgm-battle-normal', 'assets/audio/music/battle/normal.ogg');
-        scene.load.audio('bgm-battle-boss', 'assets/audio/music/battle/boss.ogg');
-        scene.load.audio('bgm-battle-final', 'assets/audio/music/battle/final.ogg');
-        
-        scene.load.audio('bgm-victory', 'assets/audio/music/victory/victory.ogg');
-        scene.load.audio('bgm-gameover', 'assets/audio/music/victory/gameover.ogg');
-        scene.load.audio('bgm-levelup', 'assets/audio/music/victory/levelup.ogg');
+        console.log('AudioManager: 音效載入已跳過（文件尚未準備）');
     }
     
     // ==================== 背景音樂控制 ====================
@@ -107,6 +75,12 @@ class AudioManager {
      * @param {number} fadeIn - 淡入時間(ms)
      */
     playBgm(key, loop = true, fadeIn = 1000) {
+        // 檢查音樂是否存在
+        if (!this.scene.cache.audio.exists(key)) {
+            console.log(`背景音樂 ${key} 不存在，跳過播放`);
+            return;
+        }
+        
         // 如果正在播放同一首，不重複播放
         if (this.currentBgmKey === key && this.currentBgm && this.currentBgm.isPlaying) {
             return;
@@ -192,6 +166,12 @@ class AudioManager {
      */
     playSfx(key, config = {}) {
         if (this.isMuted) return;
+        
+        // 檢查音效是否存在
+        if (!this.scene.cache.audio.exists(key)) {
+            console.log(`音效 ${key} 不存在，跳過播放`);
+            return;
+        }
         
         const volume = (config.volume || 1) * this.sfxVolume * this.masterVolume;
         const detune = config.detune || 0; // 音高變化（用於隨機變化）
