@@ -404,8 +404,7 @@ class VillageScene extends Phaser.Scene {
         this.playerData.hp = this.playerData.maxHp;
         this.playerData.mp = this.playerData.maxMp;
         
-        this.showDialog('👩‍⚕️ 治療師：「讓我為你治療...好了！
-你的HP和MP已經完全恢復了！」');
+        this.showDialog('👩‍⚕️ 治療師：「讓我為你治療...好了！\n你的HP和MP已經完全恢復了！」');
         
         // 更新全局數據
         this.game.globals.playerHP = this.playerData.hp;

@@ -252,11 +252,16 @@ class BattleScene extends Phaser.Scene {
             // 播放魔法音效（根據科目）
             this.audio.playMagic(result.subject || 'general');
             
+            // 技能特效
+            this.createSkillEffect(result.subject, this.enemySprite.x, this.enemySprite.y);
+            
             this.dealDamageToEnemy(damage);
             this.showMessage(`✅ 答對了！造成 ${damage} 點傷害！`);
             
             // 攻擊動畫
-            this.animateAttack(this.playerSprite, this.enemySprite);
+            this.time.delayedCall(300, () => {
+                this.animateAttack(this.playerSprite, this.enemySprite);
+            });
         } else {
             // 答錯了
             this.audio.playMiss();
@@ -365,8 +370,260 @@ class BattleScene extends Phaser.Scene {
                     yoyo: true,
                     repeat: 3
                 });
+                
+                // 播放攻擊特效
+                this.createAttackEffect(target.x, target.y);
             }
         });
+    }
+    
+    createAttackEffect(x, y) {
+        // 基礎攻擊特效 - 閃光
+        const flash = this.add.circle(x, y, 40, 0xffffff, 0.8);
+        
+        this.tweens.add({
+            targets: flash,
+            scale: { from: 0.5, to: 1.5 },
+            alpha: { from: 0.8, to: 0 },
+            duration: 300,
+            onComplete: () => flash.destroy()
+        });
+        
+        // 傷害數字效果
+        this.createDamageNumber(x, y, '💥');
+    }
+    
+    createSkillEffect(skillType, targetX, targetY) {
+        // 根據技能類型創建不同的特效
+        switch(skillType) {
+            case 'math':
+                this.createMathEffect(targetX, targetY);
+                break;
+            case 'science':
+                this.createScienceEffect(targetX, targetY);
+                break;
+            case 'english':
+                this.createEnglishEffect(targetX, targetY);
+                break;
+            case 'general':
+                this.createGeneralEffect(targetX, targetY);
+                break;
+            default:
+                this.createAttackEffect(targetX, targetY);
+        }
+    }
+    
+    createMathEffect(x, y) {
+        // 數學技能 - 計算符號和數字
+        const symbols = ['+', '-', '×', '÷', '=', '∑', '√'];
+        
+        for (let i = 0; i < 8; i++) {
+            const symbol = this.add.text(x, y, symbols[i % symbols.length], {
+                fontSize: '24px',
+                fill: '#3498db'
+            }).setOrigin(0.5);
+            
+            const angle = (i / 8) * Math.PI * 2;
+            const distance = 60;
+            
+            this.tweens.add({
+                targets: symbol,
+                x: x + Math.cos(angle) * distance,
+                y: y + Math.sin(angle) * distance,
+                alpha: 0,
+                scale: { from: 1, to: 0.5 },
+                duration: 600,
+                ease: 'Power2',
+                onComplete: () => symbol.destroy()
+            });
+        }
+        
+        // 中央閃光
+        const flash = this.add.circle(x, y, 50, 0x3498db, 0.6);
+        this.tweens.add({
+            targets: flash,
+            scale: { from: 0, to: 2 },
+            alpha: { from: 0.6, to: 0 },
+            duration: 500,
+            onComplete: () => flash.destroy()
+        });
+    }
+    
+    createScienceEffect(x, y) {
+        // 科學技能 - 元素和分子效果
+        const elements = ['⚗️', '🔬', '🧪', '⚛️', '💨', '🔥', '💧'];
+        
+        for (let i = 0; i < 6; i++) {
+            const element = this.add.text(x, y, elements[i % elements.length], {
+                fontSize: '28px'
+            }).setOrigin(0.5);
+            
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 30 + Math.random() * 50;
+            
+            this.tweens.add({
+                targets: element,
+                x: x + Math.cos(angle) * distance,
+                y: y + Math.sin(angle) * distance,
+                rotation: Math.PI * 2,
+                alpha: 0,
+                duration: 800,
+                ease: 'Power2',
+                onComplete: () => element.destroy()
+            });
+        }
+        
+        // 能量爆發
+        const burst = this.add.circle(x, y, 30, 0x2ecc71, 0.7);
+        this.tweens.add({
+            targets: burst,
+            scale: { from: 1, to: 3 },
+            alpha: { from: 0.7, to: 0 },
+            duration: 600,
+            onComplete: () => burst.destroy()
+        });
+    }
+    
+    createEnglishEffect(x, y) {
+        // 英文技能 - 字母飛散效果
+        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        
+        for (let i = 0; i < 10; i++) {
+            const letter = this.add.text(x, y, letters[Math.floor(Math.random() * letters.length)], {
+                fontSize: '20px',
+                fill: '#f39c12'
+            }).setOrigin(0.5);
+            
+            const angle = (i / 10) * Math.PI * 2;
+            const distance = 50 + Math.random() * 30;
+            
+            this.tweens.add({
+                targets: letter,
+                x: x + Math.cos(angle) * distance,
+                y: y + Math.sin(angle) * distance,
+                alpha: 0,
+                scale: { from: 1, to: 1.5 },
+                duration: 700,
+                ease: 'Power2',
+                onComplete: () => letter.destroy()
+            });
+        }
+        
+        // 書本光環
+        const bookGlow = this.add.circle(x, y, 40, 0xf39c12, 0.5);
+        this.tweens.add({
+            targets: bookGlow,
+            scale: { from: 0.5, to: 2 },
+            alpha: { from: 0.5, to: 0 },
+            duration: 600,
+            onComplete: () => bookGlow.destroy()
+        });
+    }
+    
+    createGeneralEffect(x, y) {
+        // 常識技能 - 盾牌和防護效果
+        const shield = this.add.text(x, y, '🛡️', {
+            fontSize: '60px'
+        }).setOrigin(0.5);
+        
+        this.tweens.add({
+            targets: shield,
+            scale: { from: 0.5, to: 1.5 },
+            alpha: { from: 1, to: 0 },
+            rotation: Math.PI / 4,
+            duration: 800,
+            ease: 'Power2',
+            onComplete: () => shield.destroy()
+        });
+        
+        // 防護光環
+        for (let i = 0; i < 4; i++) {
+            const ring = this.add.circle(x, y, 30 + i * 20, 0x9b59b6, 0.3);
+            
+            this.tweens.add({
+                targets: ring,
+                scale: { from: 1, to: 1.5 },
+                alpha: { from: 0.3, to: 0 },
+                duration: 600,
+                delay: i * 100,
+                onComplete: () => ring.destroy()
+            });
+        }
+    }
+    
+    createDamageNumber(x, y, text) {
+        const damageText = this.add.text(x, y - 50, text, {
+            fontSize: '24px',
+            fontFamily: 'Microsoft JhengHei',
+            fill: '#e74c3c',
+            stroke: '#ffffff',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        
+        this.tweens.add({
+            targets: damageText,
+            y: y - 100,
+            alpha: 0,
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => damageText.destroy()
+        });
+    }
+    
+    createHealEffect(x, y) {
+        // 治療特效
+        const healIcon = this.add.text(x, y, '💚', {
+            fontSize: '40px'
+        }).setOrigin(0.5);
+        
+        this.tweens.add({
+            targets: healIcon,
+            y: y - 60,
+            alpha: 0,
+            scale: { from: 1, to: 1.5 },
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => healIcon.destroy()
+        });
+        
+        // 綠色粒子
+        for (let i = 0; i < 6; i++) {
+            const particle = this.add.circle(x, y, 5, 0x2ecc71);
+            
+            const angle = (i / 6) * Math.PI * 2;
+            
+            this.tweens.add({
+                targets: particle,
+                x: x + Math.cos(angle) * 40,
+                y: y + Math.sin(angle) * 40 - 30,
+                alpha: 0,
+                duration: 800,
+                delay: i * 50,
+                onComplete: () => particle.destroy()
+            });
+        }
+    }
+    
+    createVictoryEffect() {
+        // 勝利特效
+        for (let i = 0; i < 20; i++) {
+            const confetti = this.add.text(
+                Phaser.Math.Between(100, 700),
+                600,
+                ['🎉', '✨', '⭐', '🎊'][Math.floor(Math.random() * 4)],
+                { fontSize: '24px' }
+            ).setOrigin(0.5);
+            
+            this.tweens.add({
+                targets: confetti,
+                y: Phaser.Math.Between(100, 400),
+                x: confetti.x + Phaser.Math.Between(-100, 100),
+                rotation: Math.PI * 2,
+                duration: Phaser.Math.Between(1000, 2000),
+                ease: 'Power2',
+                onComplete: () => confetti.destroy()
+            });
+        }
     }
     
     tryEscape() {

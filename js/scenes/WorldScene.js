@@ -82,6 +82,63 @@ class WorldScene extends Phaser.Scene {
         
         // 設置世界邊界
         this.physics.world.setBounds(0, 0, mapWidth * tileSize, mapHeight * tileSize);
+        
+        // 創建場景切換點
+        this.createTransitionPoints();
+    }
+    
+    createTransitionPoints() {
+        this.transitions = this.physics.add.staticGroup();
+        
+        // 前往村莊的入口
+        const villageExit = this.transitions.create(400, 600, 'tile-wood');
+        villageExit.setTint(0x87CEEB);
+        villageExit.targetScene = 'VillageScene';
+        villageExit.targetX = 400;
+        villageExit.targetY = 50;
+        
+        // 前往森林的入口（需要等級3以上）
+        if (this.playerData.level >= 3) {
+            const forestExit = this.transitions.create(780, 300, 'tile-wood');
+            forestExit.setTint(0x228B22);
+            forestExit.targetScene = 'ForestScene';
+            forestExit.targetX = 50;
+            forestExit.targetY = 300;
+            
+            // 森林標記
+            const forestText = this.add.text(730, 270, '🌲 森林', {
+                fontSize: '14px',
+                fontFamily: 'Microsoft JhengHei',
+                fill: '#ffffff',
+                backgroundColor: '#00000088',
+                padding: { x: 5, y: 2 }
+            }).setOrigin(0.5);
+        }
+        
+        // 出口標記
+        const villageText = this.add.text(400, 565, '🏠 前往村莊', {
+            fontSize: '14px',
+            fontFamily: 'Microsoft JhengHei',
+            fill: '#ffffff',
+            backgroundColor: '#00000088',
+            padding: { x: 5, y: 2 }
+        }).setOrigin(0.5);
+        
+        // 檢測場景切換
+        this.physics.add.overlap(this.player, this.transitions, this.onTransition, null, this);
+    }
+    
+    onTransition(player, transition) {
+        // 保存當前數據
+        this.game.globals.playerHP = this.playerData.hp;
+        this.game.globals.playerMP = this.playerData.mp;
+        
+        // 切換場景
+        this.scene.start(transition.targetScene, {
+            playerX: transition.targetX,
+            playerY: transition.targetY,
+            player: this.playerData
+        });
     }
     
     createPlayer() {
@@ -105,6 +162,11 @@ class WorldScene extends Phaser.Scene {
         
         // 敵人碰撞（進入戰鬥）
         this.physics.add.overlap(this.player, this.enemies, this.encounterEnemy, null, this);
+        
+        // 場景切換點碰撞
+        if (this.transitions) {
+            this.physics.add.overlap(this.player, this.transitions, this.onTransition, null, this);
+        }
     }
     
     createEnemies() {

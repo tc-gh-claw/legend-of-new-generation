@@ -20,15 +20,22 @@ const config = {
         MenuScene,
         SettingsScene,
         WorldScene,
+        VillageScene,
+        ForestScene,
+        BossScene,
         BattleScene,
-        QuizScene
+        QuizScene,
+        ShopScene,
+        InventorySystem,
+        QuestSystem,
+        LevelUpScene
     ]
 };
 
 // 初始化遊戲
 const game = new Phaser.Game(config);
 
-// 遊戲全域數據
+// 遊戲全域數擸
 game.globals = {
     playerName: '',
     playerClass: '', // math, science, english, general
@@ -38,10 +45,16 @@ game.globals = {
     playerMaxHP: 100,
     playerMP: 50,
     playerMaxMP: 50,
+    playerGold: 0,
     inventory: [],
+    equipped: {},
+    skills: [],
+    activeQuests: [],
+    completedQuests: [],
     currentMap: 'village',
     completedLevels: [],
-    unlockedSubjects: ['math'] // 逐步解鎖其他學科
+    unlockedSubjects: ['math'], // 逐步解鎖其他學科
+    discoveredRuin: false
 };
 
 // 移除載入提示
