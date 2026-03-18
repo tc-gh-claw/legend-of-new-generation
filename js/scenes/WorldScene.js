@@ -18,11 +18,11 @@ class WorldScene extends Phaser.Scene {
         // 創建地圖
         this.createMap();
         
+        // 創建敵人（必須在玩家之前，因為玩家創建時會引用敵人組）
+        this.createEnemies();
+        
         // 創建玩家
         this.createPlayer();
-        
-        // 創建敵人
-        this.createEnemies();
         
         // 設置相機
         this.setupCamera();
