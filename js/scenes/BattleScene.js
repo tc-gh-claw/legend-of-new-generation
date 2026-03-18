@@ -237,12 +237,14 @@ class BattleScene extends Phaser.Scene {
         
         this.hideActionButtons();
         
+        const self = this; // 保存 this 引用
+        
         // 傳遞到QuizScene
         this.scene.launch('QuizScene', {
             subject: subject,
-            onComplete: (result) => {
-                this.quizActive = false;
-                this.handleQuizResult(result);
+            onComplete: function(result) {
+                self.quizActive = false;
+                self.handleQuizResult(result);
             }
         });
     }

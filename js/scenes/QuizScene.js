@@ -11,9 +11,24 @@ class QuizScene extends Phaser.Scene {
     init(data) {
         this.subject = data.subject || 'math';
         this.onComplete = data.onComplete;
-        this.playerLevel = data.playerLevel || this.game.globals.playerLevel || 1;
-        this.questions = this.getQuestionsBySubject(this.subject, this.playerLevel);
-        this.currentQuestion = this.getRandomQuestion();
+        
+        // 安全地獲取玩家等級
+        let level = 1;
+        if (data.playerLevel) {
+            level = data.playerLevel;
+        } else if (this.game && this.game.globals && this.game.globals.playerLevel) {
+            level = this.game.globals.playerLevel;
+        }
+        this.playerLevel = level;
+        
+        // 安全地獲取題目
+        try {
+            this.questions = this.getQuestionsBySubject(this.subject, this.playerLevel);
+            this.currentQuestion = this.getRandomQuestion();
+        } catch (e) {
+            console.error('QuizScene: 獲取題目失敗', e);
+            this.currentQuestion = this.getDefaultQuestion();
+        }
     }
 
     create() {
