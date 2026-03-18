@@ -228,7 +228,7 @@ class QuizScene extends Phaser.Scene {
         
         // 延遲後返回結果
         this.time.delayedCall(1500, () => {
-            if (this.onComplete) {
+            if (typeof this.onComplete === 'function') {
                 this.onComplete({
                     correct: isCorrect,
                     damage: damage,
@@ -246,7 +246,7 @@ class QuizScene extends Phaser.Scene {
         this.showResult(false, '⏰ 時間到！');
         
         this.time.delayedCall(1500, () => {
-            if (this.onComplete) {
+            if (typeof this.onComplete === 'function') {
                 this.onComplete({
                     correct: false,
                     damage: 0,
