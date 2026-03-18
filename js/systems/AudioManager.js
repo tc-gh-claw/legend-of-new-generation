@@ -1,30 +1,53 @@
 /**
  * AudioManager.js - 音效管理系統
- * 負責管理所有遊戲音效和背景音樂
- * 支持8-bit/16-bit風格音效
+ * 插畫風格遊戲版本 - 使用 Web Audio API 生成音效
+ * 無需外部音效文件，自動生成 8-bit/合成器風格音效
  */
 
 class AudioManager {
     constructor(scene) {
         this.scene = scene;
         
+        // Web Audio Context
+        this.audioContext = null;
+        this.initAudioContext();
+        
         // 音量設置 (0-1)
         this.masterVolume = 1.0;
-        this.bgmVolume = 0.7;
+        this.bgmVolume = 0.5;  // 背景音樂較小聲
         this.sfxVolume = 0.8;
         
         // 靜音狀態
         this.isMuted = false;
         
         // 當前播放的背景音樂
-        this.currentBgm = null;
-        this.currentBgmKey = null;
-        
-        // 音效池（用於頻繁播放的音效）
-        this.sfxPool = {};
+        this.currentBgmOscillator = null;
+        this.currentBgmGain = null;
+        this.currentBgmInterval = null;
         
         // 載入保存的設置
         this.loadSettings();
+    }
+    
+    /**
+     * 初始化 Web Audio Context
+     */
+    initAudioContext() {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            this.audioContext = new AudioContext();
+        } catch (e) {
+            console.warn('Web Audio API not supported:', e);
+        }
+    }
+    
+    /**
+     * 確保 AudioContext 已恢復（用戶互動後）
+     */
+    ensureContext() {
+        if (this.audioContext && this.audioContext.state === 'suspended') {
+            this.audioContext.resume();
+        }
     }
     
     /**
@@ -48,103 +71,555 @@ class AudioManager {
         return scene.game.audioManager;
     }
     
-    // ==================== 音效載入 ====================
-    
     /**
-     * 在 BootScene 的 preload 中調用，載入所有音效
-     * 注意：音效文件不存在時會跳過，避免載入失敗
+     * 在 BootScene 的 preload 中調用
+     * 由於使用 Web Audio API 生成音效，不需要載入文件
      */
     static preload(scene) {
-        // 音效文件暫時不存在，跳過載入
-        // 等音效文件準備好後取消註釋以下代碼
-        
-        // ===== UI 音效 =====
-        // scene.load.audio('sfx-ui-click', 'assets/audio/sfx/ui/click.wav');
-        // scene.load.audio('sfx-ui-hover', 'assets/audio/sfx/ui/hover.wav');
-        // ... 更多音效
-        
-        console.log('AudioManager: 音效載入已跳過（文件尚未準備）');
+        console.log('AudioManager: 使用 Web Audio API 生成音效，無需載入文件');
     }
     
-    // ==================== 背景音樂控制 ====================
+    // ==================== Web Audio 音效生成 ====================
     
     /**
-     * 播放背景音樂
-     * @param {string} key - 音樂鍵值
-     * @param {boolean} loop - 是否循環
-     * @param {number} fadeIn - 淡入時間(ms)
+     * 生成點擊音效 - 短促高頻
      */
-    playBgm(key, loop = true, fadeIn = 1000) {
-        // 檢查音樂是否存在
-        if (!this.scene.cache.audio.exists(key)) {
-            console.log(`背景音樂 ${key} 不存在，跳過播放`);
-            return;
-        }
+    generateClickSound() {
+        if (!this.audioContext || this.isMuted) return;
+        this.ensureContext();
         
-        // 如果正在播放同一首，不重複播放
-        if (this.currentBgmKey === key && this.currentBgm && this.currentBgm.isPlaying) {
-            return;
-        }
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
         
-        // 停止當前音樂
-        this.stopBgm(fadeIn);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, this.audioContext.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(400, this.audioContext.currentTime + 0.1);
         
-        // 播放新音樂
-        const music = this.scene.sound.add(key, {
-            loop: loop,
-            volume: this.isMuted ? 0 : this.bgmVolume * this.masterVolume
+        gain.gain.setValueAtTime(0.3 * this.sfxVolume * this.masterVolume, this.audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
+        
+        osc.connect(gain);
+        gain.connect(this.audioContext.destination);
+        
+        osc.start();
+        osc.stop(this.audioContext.currentTime + 0.1);
+    }
+    
+    /**
+     * 生成懸停音效 - 輕微高頻
+     */
+    generateHoverSound() {
+        if (!this.audioContext || this.isMuted) return;
+        this.ensureContext();
+        
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, this.audioContext.currentTime);
+        
+        gain.gain.setValueAtTime(0.15 * this.sfxVolume * this.masterVolume, this.audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.05);
+        
+        osc.connect(gain);
+        gain.connect(this.audioContext.destination);
+        
+        osc.start();
+        osc.stop(this.audioContext.currentTime + 0.05);
+    }
+    
+    /**
+     * 生成確認音效 - 愉快上升音階
+     */
+    generateConfirmSound() {
+        if (!this.audioContext || this.isMuted) return;
+        this.ensureContext();
+        
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C major chord arpeggio
+        
+        notes.forEach((freq, index) => {
+            setTimeout(() => {
+                const osc = this.audioContext.createOscillator();
+                const gain = this.audioContext.createGain();
+                
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, this.audioContext.currentTime);
+                
+                gain.gain.setValueAtTime(0.2 * this.sfxVolume * this.masterVolume, this.audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.15);
+                
+                osc.connect(gain);
+                gain.connect(this.audioContext.destination);
+                
+                osc.start();
+                osc.stop(this.audioContext.currentTime + 0.15);
+            }, index * 60);
         });
+    }
+    
+    /**
+     * 生成取消音效 - 下降音
+     */
+    generateCancelSound() {
+        if (!this.audioContext || this.isMuted) return;
+        this.ensureContext();
         
-        if (fadeIn > 0) {
-            music.setVolume(0);
-            music.play();
-            this.scene.tweens.add({
-                targets: music,
-                volume: this.bgmVolume * this.masterVolume,
-                duration: fadeIn
-            });
-        } else {
-            music.play();
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(300, this.audioContext.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, this.audioContext.currentTime + 0.15);
+        
+        gain.gain.setValueAtTime(0.2 * this.sfxVolume * this.masterVolume, this.audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.15);
+        
+        osc.connect(gain);
+        gain.connect(this.audioContext.destination);
+        
+        osc.start();
+        osc.stop(this.audioContext.currentTime + 0.15);
+    }
+    
+    /**
+     * 生成攻擊音效 - 快速掃頻
+     */
+    generateAttackSound() {
+        if (!this.audioContext || this.isMuted) return;
+        this.ensureContext();
+        
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(200, this.audioContext.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(800, this.audioContext.currentTime + 0.1);
+        
+        gain.gain.setValueAtTime(0.3 * this.sfxVolume * this.masterVolume, this.audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
+        
+        osc.connect(gain);
+        gain.connect(this.audioContext.destination);
+        
+        osc.start();
+        osc.stop(this.audioContext.currentTime + 0.1);
+    }
+    
+    /**
+     * 生成受擊音效 - 噪音 burst
+     */
+    generateHitSound() {
+        if (!this.audioContext || this.isMuted) return;
+        this.ensureContext();
+        
+        const bufferSize = this.audioContext.sampleRate * 0.1;
+        const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+        const data = buffer.getChannelData(0);
+        
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
         }
         
-        this.currentBgm = music;
-        this.currentBgmKey = key;
+        const noise = this.audioContext.createBufferSource();
+        const gain = this.audioContext.createGain();
+        const filter = this.audioContext.createBiquadFilter();
         
-        return music;
+        noise.buffer = buffer;
+        filter.type = 'lowpass';
+        filter.frequency.value = 800;
+        
+        gain.gain.setValueAtTime(0.4 * this.sfxVolume * this.masterVolume, this.audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
+        
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.audioContext.destination);
+        
+        noise.start();
+    }
+    
+    /**
+     * 生成勝利音效 - 歡快旋律
+     */
+    generateVictorySound() {
+        if (!this.audioContext || this.isMuted) return;
+        this.ensureContext();
+        
+        const melody = [
+            { freq: 523.25, duration: 150 },  // C5
+            { freq: 523.25, duration: 150 },  // C5
+            { freq: 523.25, duration: 150 },  // C5
+            { freq: 659.25, duration: 400 },  // E5
+            { freq: 783.99, duration: 200 },  // G5
+            { freq: 659.25, duration: 600 },  // E5
+        ];
+        
+        let delay = 0;
+        melody.forEach(note => {
+            setTimeout(() => {
+                const osc = this.audioContext.createOscillator();
+                const gain = this.audioContext.createGain();
+                
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(note.freq, this.audioContext.currentTime);
+                
+                gain.gain.setValueAtTime(0.25 * this.sfxVolume * this.masterVolume, this.audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + note.duration / 1000);
+                
+                osc.connect(gain);
+                gain.connect(this.audioContext.destination);
+                
+                osc.start();
+                osc.stop(this.audioContext.currentTime + note.duration / 1000);
+            }, delay);
+            delay += note.duration;
+        });
+    }
+    
+    /**
+     * 生成失敗音效 - 下降旋律
+     */
+    generateDefeatSound() {
+        if (!this.audioContext || this.isMuted) return;
+        this.ensureContext();
+        
+        const melody = [
+            { freq: 392.00, duration: 300 },  // G4
+            { freq: 349.23, duration: 300 },  // F4
+            { freq: 311.13, duration: 300 },  // Eb4
+            { freq: 293.66, duration: 800 },  // D4
+        ];
+        
+        let delay = 0;
+        melody.forEach(note => {
+            setTimeout(() => {
+                const osc = this.audioContext.createOscillator();
+                const gain = this.audioContext.createGain();
+                
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(note.freq, this.audioContext.currentTime);
+                
+                gain.gain.setValueAtTime(0.25 * this.sfxVolume * this.masterVolume, this.audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + note.duration / 1000);
+                
+                osc.connect(gain);
+                gain.connect(this.audioContext.destination);
+                
+                osc.start();
+                osc.stop(this.audioContext.currentTime + note.duration / 1000);
+            }, delay);
+            delay += note.duration;
+        });
+    }
+    
+    /**
+     * 生成升級音效 - 閃耀音效
+     */
+    generateLevelUpSound() {
+        if (!this.audioContext || this.isMuted) return;
+        this.ensureContext();
+        
+        const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51]; // Rising arpeggio
+        
+        notes.forEach((freq, index) => {
+            setTimeout(() => {
+                const osc = this.audioContext.createOscillator();
+                const gain = this.audioContext.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, this.audioContext.currentTime);
+                
+                gain.gain.setValueAtTime(0.2 * this.sfxVolume * this.masterVolume, this.audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.2);
+                
+                osc.connect(gain);
+                gain.connect(this.audioContext.destination);
+                
+                osc.start();
+                osc.stop(this.audioContext.currentTime + 0.2);
+            }, index * 80);
+        });
+    }
+    
+    /**
+     * 生成魔法音效 - 不同學科不同風格
+     */
+    generateMagicSound(subject) {
+        if (!this.audioContext || this.isMuted) return;
+        this.ensureContext();
+        
+        const subjectSounds = {
+            math: { type: 'square', baseFreq: 440, sweep: 'up' },
+            science: { type: 'sawtooth', baseFreq: 330, sweep: 'down' },
+            english: { type: 'triangle', baseFreq: 523, sweep: 'up' },
+            general: { type: 'sine', baseFreq: 392, sweep: 'up' }
+        };
+        
+        const sound = subjectSounds[subject] || subjectSounds.general;
+        
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        
+        osc.type = sound.type;
+        osc.frequency.setValueAtTime(sound.baseFreq, this.audioContext.currentTime);
+        
+        if (sound.sweep === 'up') {
+            osc.frequency.exponentialRampToValueAtTime(sound.baseFreq * 2, this.audioContext.currentTime + 0.3);
+        } else {
+            osc.frequency.exponentialRampToValueAtTime(sound.baseFreq / 2, this.audioContext.currentTime + 0.3);
+        }
+        
+        gain.gain.setValueAtTime(0.25 * this.sfxVolume * this.masterVolume, this.audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+        
+        osc.connect(gain);
+        gain.connect(this.audioContext.destination);
+        
+        osc.start();
+        osc.stop(this.audioContext.currentTime + 0.3);
+    }
+    
+    /**
+     * 生成腳步聲 - 輕微低音
+     */
+    generateFootstepSound() {
+        if (!this.audioContext || this.isMuted) return;
+        this.ensureContext();
+        
+        const osc = this.audioContext.createOscillator();
+        const gain = this.audioContext.createGain();
+        
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(100, this.audioContext.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(50, this.audioContext.currentTime + 0.05);
+        
+        gain.gain.setValueAtTime(0.1 * this.sfxVolume * this.masterVolume, this.audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.05);
+        
+        osc.connect(gain);
+        gain.connect(this.audioContext.destination);
+        
+        osc.start();
+        osc.stop(this.audioContext.currentTime + 0.05);
+    }
+    
+    /**
+     * 生成存檔音效 - 電子音
+     */
+    generateSaveSound() {
+        if (!this.audioContext || this.isMuted) return;
+        this.ensureContext();
+        
+        const notes = [880, 1108.73, 1318.51]; // A5, C#6, E6
+        
+        notes.forEach((freq, index) => {
+            setTimeout(() => {
+                const osc = this.audioContext.createOscillator();
+                const gain = this.audioContext.createGain();
+                
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(freq, this.audioContext.currentTime);
+                
+                gain.gain.setValueAtTime(0.15 * this.sfxVolume * this.masterVolume, this.audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
+                
+                osc.connect(gain);
+                gain.connect(this.audioContext.destination);
+                
+                osc.start();
+                osc.stop(this.audioContext.currentTime + 0.1);
+            }, index * 50);
+        });
+    }
+    
+    // ==================== 背景音樂生成 ====================
+    
+    /**
+     * 生成主選單背景音樂 - 輕鬆循環旋律
+     */
+    playMenuBgm() {
+        if (!this.audioContext || this.isMuted) return;
+        this.ensureContext();
+        this.stopBgm();
+        
+        // 簡單的循環和弦進行
+        const chordProgression = [
+            { notes: [261.63, 329.63, 392.00], duration: 2000 },  // C major
+            { notes: [293.66, 349.23, 440.00], duration: 2000 },  // D minor
+            { notes: [349.23, 440.00, 523.25], duration: 2000 },  // F major
+            { notes: [392.00, 493.88, 587.33], duration: 2000 },  // G major
+        ];
+        
+        let chordIndex = 0;
+        
+        const playChord = () => {
+            if (this.isMuted || !this.audioContext) return;
+            
+            const chord = chordProgression[chordIndex];
+            const gain = this.audioContext.createGain();
+            gain.gain.setValueAtTime(0, this.audioContext.currentTime);
+            gain.gain.linearRampToValueAtTime(0.08 * this.bgmVolume * this.masterVolume, this.audioContext.currentTime + 0.5);
+            gain.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + chord.duration / 1000);
+            gain.connect(this.audioContext.destination);
+            
+            chord.notes.forEach(freq => {
+                const osc = this.audioContext.createOscillator();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                osc.connect(gain);
+                osc.start();
+                osc.stop(this.audioContext.currentTime + chord.duration / 1000);
+            });
+            
+            chordIndex = (chordIndex + 1) % chordProgression.length;
+        };
+        
+        playChord();
+        this.currentBgmInterval = setInterval(playChord, 2000);
+    }
+    
+    /**
+     * 生成戰鬥背景音樂 - 緊張節奏
+     */
+    playBattleBgm() {
+        if (!this.audioContext || this.isMuted) return;
+        this.ensureContext();
+        this.stopBgm();
+        
+        // 更快的節奏
+        const baseFreq = 110; // A2
+        let beat = 0;
+        
+        const playBeat = () => {
+            if (this.isMuted || !this.audioContext) return;
+            
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            
+            osc.type = beat % 4 === 0 ? 'square' : 'sawtooth';
+            osc.frequency.value = beat % 4 === 0 ? baseFreq : baseFreq * 1.5;
+            
+            gain.gain.setValueAtTime(0.1 * this.bgmVolume * this.masterVolume, this.audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.15);
+            
+            osc.connect(gain);
+            gain.connect(this.audioContext.destination);
+            
+            osc.start();
+            osc.stop(this.audioContext.currentTime + 0.15);
+            
+            beat++;
+        };
+        
+        playBeat();
+        this.currentBgmInterval = setInterval(playBeat, 250);
+    }
+    
+    /**
+     * 生成世界地圖背景音樂 - 輕快探索感
+     */
+    playWorldBgm() {
+        if (!this.audioContext || this.isMuted) return;
+        this.ensureContext();
+        this.stopBgm();
+        
+        // 輕快的旋律
+        const melody = [
+            392.00, 440.00, 493.88, 523.25,  // G A B C
+            493.88, 440.00, 392.00, 349.23,  // B A G F
+        ];
+        let noteIndex = 0;
+        
+        const playNote = () => {
+            if (this.isMuted || !this.audioContext) return;
+            
+            const freq = melody[noteIndex];
+            const osc = this.audioContext.createOscillator();
+            const gain = this.audioContext.createGain();
+            
+            osc.type = 'triangle';
+            osc.frequency.value = freq;
+            
+            gain.gain.setValueAtTime(0.1 * this.bgmVolume * this.masterVolume, this.audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+            
+            osc.connect(gain);
+            gain.connect(this.audioContext.destination);
+            
+            osc.start();
+            osc.stop(this.audioContext.currentTime + 0.3);
+            
+            noteIndex = (noteIndex + 1) % melody.length;
+        };
+        
+        playNote();
+        this.currentBgmInterval = setInterval(playNote, 400);
+    }
+    
+    /**
+     * 生成城鎮背景音樂 - 溫馨平和
+     */
+    playTownBgm() {
+        if (!this.audioContext || this.isMuted) return;
+        this.ensureContext();
+        this.stopBgm();
+        
+        // 溫馨和弦
+        const chordProgression = [
+            { notes: [349.23, 440.00, 523.25], duration: 3000 },  // F major
+            { notes: [261.63, 329.63, 392.00], duration: 3000 },  // C major
+        ];
+        
+        let chordIndex = 0;
+        
+        const playChord = () => {
+            if (this.isMuted || !this.audioContext) return;
+            
+            const chord = chordProgression[chordIndex];
+            const gain = this.audioContext.createGain();
+            gain.gain.setValueAtTime(0, this.audioContext.currentTime);
+            gain.gain.linearRampToValueAtTime(0.08 * this.bgmVolume * this.masterVolume, this.audioContext.currentTime + 1);
+            gain.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + chord.duration / 1000);
+            gain.connect(this.audioContext.destination);
+            
+            chord.notes.forEach(freq => {
+                const osc = this.audioContext.createOscillator();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                osc.connect(gain);
+                osc.start();
+                osc.stop(this.audioContext.currentTime + chord.duration / 1000);
+            });
+            
+            chordIndex = (chordIndex + 1) % chordProgression.length;
+        };
+        
+        playChord();
+        this.currentBgmInterval = setInterval(playChord, 3000);
     }
     
     /**
      * 停止背景音樂
-     * @param {number} fadeOut - 淡出時間(ms)
      */
-    stopBgm(fadeOut = 1000) {
-        if (this.currentBgm && this.currentBgm.isPlaying) {
-            if (fadeOut > 0) {
-                this.scene.tweens.add({
-                    targets: this.currentBgm,
-                    volume: 0,
-                    duration: fadeOut,
-                    onComplete: () => {
-                        this.currentBgm.stop();
-                        this.currentBgm.destroy();
-                    }
-                });
-            } else {
-                this.currentBgm.stop();
-                this.currentBgm.destroy();
-            }
+    stopBgm() {
+        if (this.currentBgmInterval) {
+            clearInterval(this.currentBgmInterval);
+            this.currentBgmInterval = null;
         }
-        
-        this.currentBgm = null;
-        this.currentBgmKey = null;
+        if (this.currentBgmOscillator) {
+            try {
+                this.currentBgmOscillator.stop();
+            } catch (e) {}
+            this.currentBgmOscillator = null;
+        }
     }
     
     /**
      * 暫停背景音樂
      */
     pauseBgm() {
-        if (this.currentBgm && this.currentBgm.isPlaying) {
-            this.currentBgm.pause();
+        if (this.audioContext) {
+            this.audioContext.suspend();
         }
     }
     
@@ -152,172 +627,85 @@ class AudioManager {
      * 恢復背景音樂
      */
     resumeBgm() {
-        if (this.currentBgm && this.currentBgm.isPaused) {
-            this.currentBgm.resume();
+        if (this.audioContext) {
+            this.audioContext.resume();
         }
-    }
-    
-    // ==================== 音效播放 ====================
-    
-    /**
-     * 播放音效
-     * @param {string} key - 音效鍵值
-     * @param {object} config - 播放配置
-     */
-    playSfx(key, config = {}) {
-        if (this.isMuted) return;
-        
-        // 檢查音效是否存在
-        if (!this.scene.cache.audio.exists(key)) {
-            console.log(`音效 ${key} 不存在，跳過播放`);
-            return;
-        }
-        
-        const volume = (config.volume || 1) * this.sfxVolume * this.masterVolume;
-        const detune = config.detune || 0; // 音高變化（用於隨機變化）
-        const rate = config.rate || 1; // 播放速度
-        
-        // 檢查音效池
-        if (!this.sfxPool[key]) {
-            this.sfxPool[key] = [];
-        }
-        
-        // 查找可用的音效實例
-        let sound = this.sfxPool[key].find(s => !s.isPlaying);
-        
-        if (!sound) {
-            sound = this.scene.sound.add(key, {
-                volume: volume,
-                detune: detune,
-                rate: rate
-            });
-            this.sfxPool[key].push(sound);
-        } else {
-            sound.setVolume(volume);
-            sound.setDetune(detune);
-            sound.setRate(rate);
-        }
-        
-        sound.play();
-        return sound;
-    }
-    
-    /**
-     * 帶隨機音高變化的音效播放（增加變化性）
-     */
-    playSfxRandom(key, detuneRange = 200, config = {}) {
-        const detune = Phaser.Math.Between(-detuneRange, detuneRange);
-        return this.playSfx(key, { ...config, detune });
     }
     
     // ==================== 快捷播放方法 ====================
     
     // --- UI 音效 ---
-    playClick() { return this.playSfx('sfx-ui-click'); }
-    playHover() { return this.playSfx('sfx-ui-hover', { volume: 0.5 }); }
-    playOpen() { return this.playSfx('sfx-ui-open'); }
-    playClose() { return this.playSfx('sfx-ui-close'); }
-    playCancel() { return this.playSfx('sfx-ui-cancel'); }
-    playConfirm() { return this.playSfx('sfx-ui-confirm'); }
+    playClick() { return this.generateClickSound(); }
+    playHover() { return this.generateHoverSound(); }
+    playOpen() { return this.generateClickSound(); }
+    playClose() { return this.generateCancelSound(); }
+    playCancel() { return this.generateCancelSound(); }
+    playConfirm() { return this.generateConfirmSound(); }
     
     // --- 戰鬥音效 ---
-    playAttack() { return this.playSfxRandom('sfx-combat-attack', 100); }
-    playHit() { return this.playSfx('sfx-combat-hit'); }
-    playMiss() { return this.playSfx('sfx-combat-miss'); }
+    playAttack() { return this.generateAttackSound(); }
+    playHit() { return this.generateHitSound(); }
+    playMiss() { return this.generateCancelSound(); }
     playVictory() { 
-        this.stopBgm(500);
-        return this.playSfx('sfx-combat-victory'); 
+        this.stopBgm();
+        return this.generateVictorySound(); 
     }
     playDefeat() { 
-        this.stopBgm(500);
-        return this.playSfx('sfx-combat-defeat'); 
+        this.stopBgm();
+        return this.generateDefeatSound(); 
     }
-    playLevelUp() { return this.playSfx('sfx-combat-levelup'); }
+    playLevelUp() { return this.generateLevelUpSound(); }
     
     // --- 魔法音效 ---
     playMagic(subject) {
-        const keyMap = {
-            'math': 'sfx-magic-math',
-            'science': 'sfx-magic-science',
-            'english': 'sfx-magic-english',
-            'general': 'sfx-magic-general'
-        };
-        return this.playSfx(keyMap[subject] || 'sfx-magic-general');
+        return this.generateMagicSound(subject);
     }
-    playHeal() { return this.playSfx('sfx-magic-heal'); }
-    playShield() { return this.playSfx('sfx-magic-shield'); }
+    playHeal() { return this.generateMagicSound('general'); }
+    playShield() { return this.generateMagicSound('general'); }
     
     // --- 環境音效 ---
-    playFootstep() { return this.playSfxRandom('sfx-env-footstep', 50, { volume: 0.3 }); }
-    playEncounter() { return this.playSfx('sfx-env-encounter'); }
-    playSave() { return this.playSfx('sfx-env-save'); }
-    playItem() { return this.playSfx('sfx-env-item'); }
+    playFootstep() { return this.generateFootstepSound(); }
+    playEncounter() { return this.generateConfirmSound(); }
+    playSave() { return this.generateSaveSound(); }
+    playItem() { return this.generateConfirmSound(); }
     
-    // --- 場景音樂 ---
-    playMenuBgm() { return this.playBgm('bgm-menu'); }
-    playWorldBgm() { return this.playBgm('bgm-world'); }
-    playTownBgm() { return this.playBgm('bgm-town'); }
-    playBattleBgm() { return this.playBgm('bgm-battle-normal'); }
-    playBossBgm() { return this.playBgm('bgm-battle-boss'); }
-    playFinalBossBgm() { return this.playBgm('bgm-battle-final'); }
+    // --- Boss 音樂 ---
+    playBossBgm() { return this.playBattleBgm(); }
+    playFinalBossBgm() { return this.playBattleBgm(); }
     
     // ==================== 音量控制 ====================
     
-    /**
-     * 設置主音量
-     */
     setMasterVolume(volume) {
-        this.masterVolume = Phaser.Math.Clamp(volume, 0, 1);
-        this.updateAllVolumes();
+        this.masterVolume = Math.max(0, Math.min(1, volume));
         this.saveSettings();
     }
     
-    /**
-     * 設置背景音樂音量
-     */
     setBgmVolume(volume) {
-        this.bgmVolume = Phaser.Math.Clamp(volume, 0, 1);
-        if (this.currentBgm) {
-            this.currentBgm.setVolume(this.isMuted ? 0 : this.bgmVolume * this.masterVolume);
-        }
+        this.bgmVolume = Math.max(0, Math.min(1, volume));
         this.saveSettings();
     }
     
-    /**
-     * 設置音效音量
-     */
     setSfxVolume(volume) {
-        this.sfxVolume = Phaser.Math.Clamp(volume, 0, 1);
+        this.sfxVolume = Math.max(0, Math.min(1, volume));
         this.saveSettings();
-    }
-    
-    /**
-     * 更新所有播放中的音量
-     */
-    updateAllVolumes() {
-        if (this.currentBgm) {
-            this.currentBgm.setVolume(this.isMuted ? 0 : this.bgmVolume * this.masterVolume);
-        }
     }
     
     // ==================== 靜音控制 ====================
     
-    /**
-     * 切換靜音狀態
-     */
     toggleMute() {
         this.isMuted = !this.isMuted;
-        this.updateAllVolumes();
+        if (this.isMuted) {
+            this.stopBgm();
+        }
         this.saveSettings();
         return this.isMuted;
     }
     
-    /**
-     * 設置靜音狀態
-     */
     setMute(muted) {
         this.isMuted = muted;
-        this.updateAllVolumes();
+        if (this.isMuted) {
+            this.stopBgm();
+        }
         this.saveSettings();
     }
     
@@ -339,7 +727,7 @@ class AudioManager {
             try {
                 const settings = JSON.parse(saved);
                 this.masterVolume = settings.masterVolume ?? 1.0;
-                this.bgmVolume = settings.bgmVolume ?? 0.7;
+                this.bgmVolume = settings.bgmVolume ?? 0.5;
                 this.sfxVolume = settings.sfxVolume ?? 0.8;
                 this.isMuted = settings.isMuted ?? false;
             } catch (e) {
@@ -347,8 +735,6 @@ class AudioManager {
             }
         }
     }
-    
-    // ==================== 獲取設置 ====================
     
     getSettings() {
         return {

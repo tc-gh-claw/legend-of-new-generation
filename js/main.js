@@ -6,8 +6,10 @@ const config = {
     width: 800,
     height: 600,
     parent: 'game-container',
-    backgroundColor: '#1a1a2e',
-    pixelArt: true, // 啟用像素風格渲染
+    backgroundColor: '#2d3561', // 插畫風格漸變底色
+    pixelArt: false, // 禁用像素風格渲染，啟用插畫風格平滑渲染
+    antialias: true, // 啟用抗鋸齒
+    roundPixels: false, // 禁用像素對齊，使圖形更平滑
     physics: {
         default: 'arcade',
         arcade: {
@@ -35,7 +37,7 @@ const config = {
 // 初始化遊戲
 const game = new Phaser.Game(config);
 
-// 遊戲全域數擸
+// 遊戲全域數據
 game.globals = {
     playerName: '',
     playerClass: '', // math, science, english, general
@@ -62,3 +64,4 @@ document.querySelector('.loading').style.display = 'none';
 
 console.log('🎮 新世代傳說 - 遊戲初始化完成！');
 console.log('⚔️ Legend of the New Generation - Game Initialized!');
+console.log('🎨 插畫風格版本 - Illustration Style Edition');

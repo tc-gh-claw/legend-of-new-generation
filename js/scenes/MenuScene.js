@@ -1,5 +1,6 @@
 /**
  * MenuScene - 主選單場景
+ * 插畫風格版本 - 圓潤、漸變、光澤效果
  */
 
 class MenuScene extends Phaser.Scene {
@@ -17,104 +18,142 @@ class MenuScene extends Phaser.Scene {
         // 播放主選單背景音樂
         this.audio.playMenuBgm();
         
-        // 背景
-        this.createBackground();
+        // 創建插畫風格背景
+        this.createIllustrationBackground();
         
-        // 遊戲標題
-        const titleText = this.add.text(width / 2, 120, '⚔️ 新世代傳說 ⚔️', {
-            fontSize: '48px',
-            fontFamily: 'Microsoft JhengHei',
-            fill: '#e94560',
-            stroke: '#ffffff',
-            strokeThickness: 2
+        // 遊戲標題 - 插畫風格大字
+        const titleText = this.add.text(width / 2, 100, '⚔️ 新世代傳說 ⚔️', {
+            fontSize: '56px',
+            fontFamily: '"ZCOOL KuaiLe", "Noto Sans TC", cursive',
+            fill: '#ffffff',
+            stroke: '#e94560',
+            strokeThickness: 6,
+            shadow: { 
+                offsetX: 4, 
+                offsetY: 4, 
+                color: '#000000', 
+                blur: 8, 
+                fill: true 
+            }
         }).setOrigin(0.5);
         
         // 副標題
-        const subtitleText = this.add.text(width / 2, 180, 'Legend of the New Generation', {
-            fontSize: '20px',
-            fontFamily: 'Microsoft JhengHei',
-            fill: '#feca57'
+        const subtitleText = this.add.text(width / 2, 165, 'Legend of the New Generation', {
+            fontSize: '22px',
+            fontFamily: '"Noto Sans TC", sans-serif',
+            fill: '#feca57',
+            fontStyle: 'italic'
         }).setOrigin(0.5);
         
         // 描述文字
-        const descText = this.add.text(width / 2, 230, '📚 全科知識RPG冒險遊戲', {
-            fontSize: '16px',
-            fontFamily: 'Microsoft JhengHei',
-            fill: '#aaaaaa'
+        const descText = this.add.text(width / 2, 205, '📚 全科知識RPG冒險遊戲', {
+            fontSize: '18px',
+            fontFamily: '"Noto Sans TC", sans-serif',
+            fill: '#a0a0c0'
         }).setOrigin(0.5);
         
-        // 創建選單按鈕
-        this.createMenuButton(width / 2, 320, '🎮 開始冒險', () => {
+        // 創建插畫風格選單按鈕
+        this.createIllustrationButton(width / 2, 300, '🎮 開始冒險', 0xe94560, () => {
             this.startGame();
         });
         
-        this.createMenuButton(width / 2, 400, '📖 繼續遊戲', () => {
+        this.createIllustrationButton(width / 2, 380, '📖 繼續遊戲', 0x3498db, () => {
             this.loadGame();
         });
         
-        this.createMenuButton(width / 2, 480, '⚙️ 設定', () => {
+        this.createIllustrationButton(width / 2, 460, '⚙️ 遊戲設定', 0x9b59b6, () => {
             this.openSettings();
         });
         
         // 版本號
-        this.add.text(width - 10, height - 10, 'v0.1.0', {
-            fontSize: '12px',
-            fontFamily: 'Microsoft JhengHei',
+        this.add.text(width - 20, height - 20, 'v1.0.0', {
+            fontSize: '14px',
+            fontFamily: '"Noto Sans TC", sans-serif',
             fill: '#666666'
         }).setOrigin(1, 1);
         
-        // 動畫效果
+        // 標題動畫效果 - 呼吸感
         this.tweens.add({
             targets: titleText,
-            scale: { from: 0.9, to: 1.1 },
+            scale: { from: 1, to: 1.05 },
             duration: 2000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // 副標題微微浮動
+        this.tweens.add({
+            targets: subtitleText,
+            y: { from: 165, to: 168 },
+            duration: 2500,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
     }
     
-    createBackground() {
-        // 創建星空背景效果
+    createIllustrationBackground() {
         const graphics = this.add.graphics();
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
         
-        // 漸層背景
-        for (let y = 0; y < 600; y += 4) {
-            const alpha = 1 - (y / 600);
+        // 柔和漸層背景 - 深藍到紫色
+        for (let y = 0; y < height; y += 2) {
+            const ratio = y / height;
             const color = Phaser.Display.Color.Interpolate.ColorWithColor(
-                { r: 26, g: 26, b: 46 },
-                { r: 22, g: 33, b: 62 },
-                600, y
+                { r: 45, g: 53, b: 97 },    // #2d3561 頂部
+                { r: 26, g: 31, b: 58 },     // #1a1f3a 底部
+                1, ratio
             );
             graphics.fillStyle(Phaser.Display.Color.GetColor(color.r, color.g, color.b));
-            graphics.fillRect(0, y, 800, 4);
+            graphics.fillRect(0, y, width, 2);
         }
         
-        // 星星
-        for (let i = 0; i < 50; i++) {
-            const x = Phaser.Math.Between(0, 800);
-            const y = Phaser.Math.Between(0, 400);
-            const size = Phaser.Math.Between(1, 3);
-            const alpha = Phaser.Math.FloatBetween(0.3, 1);
+        // 添加柔和光點效果（插畫風格的裝飾）
+        for (let i = 0; i < 40; i++) {
+            const x = Phaser.Math.Between(0, width);
+            const y = Phaser.Math.Between(0, height * 0.7);
+            const size = Phaser.Math.FloatBetween(2, 8);
+            const alpha = Phaser.Math.FloatBetween(0.1, 0.4);
             
+            // 光暈效果
+            graphics.fillStyle(0xffffff, alpha * 0.3);
+            graphics.fillCircle(x, y, size * 1.5);
+            // 核心
             graphics.fillStyle(0xffffff, alpha);
-            graphics.fillCircle(x, y, size);
+            graphics.fillCircle(x, y, size * 0.5);
         }
         
-        // 添加閃爍動畫
+        // 底部裝飾波浪線
+        graphics.lineStyle(2, 0x5a67a8, 0.3);
+        graphics.beginPath();
+        for (let x = 0; x <= width; x += 10) {
+            const y = height - 80 + Math.sin(x * 0.02) * 20;
+            if (x === 0) {
+                graphics.moveTo(x, y);
+            } else {
+                graphics.lineTo(x, y);
+            }
+        }
+        graphics.strokePath();
+        
+        // 閃爍動畫 - 插畫風格的柔和閃光
         this.time.addEvent({
-            delay: 100,
+            delay: 200,
             callback: () => {
-                const starX = Phaser.Math.Between(0, 800);
-                const starY = Phaser.Math.Between(0, 400);
-                const star = this.add.circle(starX, starY, 2, 0xffffff);
+                const starX = Phaser.Math.Between(0, width);
+                const starY = Phaser.Math.Between(0, height * 0.6);
+                const star = this.add.circle(starX, starY, 3, 0xffffff);
                 star.setAlpha(0);
                 
                 this.tweens.add({
                     targets: star,
-                    alpha: { from: 0, to: 1 },
-                    duration: 500,
+                    alpha: { from: 0, to: 0.8 },
+                    scale: { from: 0.5, to: 1.5 },
+                    duration: 800,
                     yoyo: true,
+                    ease: 'Sine.easeInOut',
                     onComplete: () => star.destroy()
                 });
             },
@@ -122,45 +161,134 @@ class MenuScene extends Phaser.Scene {
         });
     }
     
-    createMenuButton(x, y, text, callback) {
-        const buttonContainer = this.add.container(x, y);
+    createIllustrationButton(x, y, text, baseColor, callback) {
+        const container = this.add.container(x, y);
         
-        // 按鈕背景
-        const bg = this.add.image(0, 0, 'ui-button');
-        bg.setInteractive({ useHandCursor: true });
+        // 按鈕尺寸
+        const btnWidth = 240;
+        const btnHeight = 60;
+        const radius = 16;
+        
+        // 陰影
+        const shadow = this.add.graphics();
+        shadow.fillStyle(0x000000, 0.3);
+        shadow.fillRoundedRect(-btnWidth/2 + 4, -btnHeight/2 + 4, btnWidth, btnHeight, radius);
+        container.add(shadow);
+        
+        // 主按鈕背景 - 漸變效果
+        const bg = this.add.graphics();
+        
+        // 創建漸變
+        const baseColorObj = Phaser.Display.Color.IntegerToColor(baseColor);
+        const lightColor = baseColorObj.clone().lighten(20);
+        const darkColor = baseColorObj.clone().darken(20);
+        
+        // 主體漸變
+        for (let iy = 0; iy < btnHeight; iy++) {
+            const ratio = iy / btnHeight;
+            const c = Phaser.Display.Color.Interpolate.ColorWithColor(
+                lightColor, darkColor, 1, ratio
+            );
+            bg.fillStyle(Phaser.Display.Color.GetColor(c.r, c.g, c.b));
+            // 簡化的圓角矩形繪製
+            const left = -btnWidth/2;
+            const top = -btnHeight/2 + iy;
+            const w = btnWidth;
+            const h = 1;
+            bg.fillRect(left, top, w, h);
+        }
+        
+        // 重新繪製圓角邊框
+        bg.clear();
+        bg.fillStyle(baseColor, 1);
+        bg.fillRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, radius);
+        
+        // 頂部高光
+        bg.fillStyle(0xffffff, 0.2);
+        bg.fillRoundedRect(-btnWidth/2 + 3, -btnHeight/2 + 3, btnWidth - 6, 20, 12);
+        
+        // 邊框
+        bg.lineStyle(3, 0xffffff, 0.4);
+        bg.strokeRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, radius);
+        
+        // 創建互動區域
+        const hitArea = this.add.rectangle(0, 0, btnWidth, btnHeight, 0x000000, 0);
+        hitArea.setInteractive({ useHandCursor: true });
         
         // 按鈕文字
         const buttonText = this.add.text(0, 0, text, {
-            fontSize: '20px',
-            fontFamily: 'Microsoft JhengHei',
-            fill: '#ffffff'
+            fontSize: '22px',
+            fontFamily: '"Noto Sans TC", sans-serif',
+            fill: '#ffffff',
+            fontStyle: 'bold'
         }).setOrigin(0.5);
         
-        buttonContainer.add([bg, buttonText]);
+        container.add([bg, hitArea, buttonText]);
         
-        // 互動效果
-        bg.on('pointerover', () => {
-            bg.setTexture('ui-button-hover');
-            buttonContainer.setScale(1.05);
+        // 互動效果 - 插畫風格的彈性反饋
+        hitArea.on('pointerover', () => {
+            this.tweens.add({
+                targets: container,
+                scale: 1.08,
+                duration: 200,
+                ease: 'Back.easeOut'
+            });
+            // 發光效果
+            bg.clear();
+            bg.fillStyle(baseColor, 1);
+            bg.fillRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, radius);
+            bg.fillStyle(0xffffff, 0.35);
+            bg.fillRoundedRect(-btnWidth/2 + 3, -btnHeight/2 + 3, btnWidth - 6, 20, 12);
+            bg.lineStyle(3, 0xfeca57, 0.8);
+            bg.strokeRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, radius);
+            
             this.audio.playHover();
         });
         
-        bg.on('pointerout', () => {
-            bg.setTexture('ui-button');
-            buttonContainer.setScale(1);
+        hitArea.on('pointerout', () => {
+            this.tweens.add({
+                targets: container,
+                scale: 1,
+                duration: 200,
+                ease: 'Back.easeOut'
+            });
+            // 恢復原樣
+            bg.clear();
+            bg.fillStyle(baseColor, 1);
+            bg.fillRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, radius);
+            bg.fillStyle(0xffffff, 0.2);
+            bg.fillRoundedRect(-btnWidth/2 + 3, -btnHeight/2 + 3, btnWidth - 6, 20, 12);
+            bg.lineStyle(3, 0xffffff, 0.4);
+            bg.strokeRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, radius);
         });
         
-        bg.on('pointerdown', () => {
-            buttonContainer.setScale(0.95);
+        hitArea.on('pointerdown', () => {
+            this.tweens.add({
+                targets: container,
+                scale: 0.95,
+                duration: 80,
+                ease: 'Power2'
+            });
+            shadow.clear();
+            shadow.fillStyle(0x000000, 0.15);
+            shadow.fillRoundedRect(-btnWidth/2 + 2, -btnHeight/2 + 2, btnWidth, btnHeight, radius);
         });
         
-        bg.on('pointerup', () => {
-            buttonContainer.setScale(1.05);
+        hitArea.on('pointerup', () => {
+            this.tweens.add({
+                targets: container,
+                scale: 1.08,
+                duration: 150,
+                ease: 'Back.easeOut'
+            });
+            shadow.clear();
+            shadow.fillStyle(0x000000, 0.3);
+            shadow.fillRoundedRect(-btnWidth/2 + 4, -btnHeight/2 + 4, btnWidth, btnHeight, radius);
             this.audio.playClick();
             callback();
         });
         
-        return buttonContainer;
+        return container;
     }
     
     startGame() {
@@ -207,98 +335,161 @@ class MenuScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
-        // 對話框背景
-        const dialog = this.add.container(width / 2, height / 2);
-        
-        const bg = this.add.image(0, 0, 'ui-dialog');
-        
-        const text = this.add.text(0, -10, message, {
-            fontSize: '18px',
-            fontFamily: 'Microsoft JhengHei',
-            fill: '#ffffff',
-            align: 'center',
-            wordWrap: { width: 500 }
-        }).setOrigin(0.5);
-        
-        const hint = this.add.text(0, 35, '(點擊任意處關閉)', {
-            fontSize: '14px',
-            fontFamily: 'Microsoft JhengHei',
-            fill: '#888888'
-        }).setOrigin(0.5);
-        
-        dialog.add([bg, text, hint]);
-        dialog.setDepth(100);
-        
-        // 點擊關閉
-        this.input.once('pointerdown', () => {
-            dialog.destroy();
-        });
+        // 創建插畫風格對話框
+        this.createIllustrationDialog(message, null, null);
     }
     
     showConfirmDialog(message, onConfirm) {
+        this.createIllustrationDialog(message, onConfirm, () => {});
+    }
+    
+    createIllustrationDialog(message, onConfirm, onCancel) {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
-        const dialog = this.add.container(width / 2, height / 2);
-        dialog.setDepth(100);
-        
         // 背景遮罩
-        const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.7);
-        overlay.setPosition(width / 2, height / 2);
+        const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7);
         overlay.setDepth(99);
         
-        const bg = this.add.image(0, 0, 'ui-dialog');
+        const dialogContainer = this.add.container(width / 2, height / 2);
+        dialogContainer.setDepth(100);
         
-        const text = this.add.text(0, -20, message, {
-            fontSize: '16px',
-            fontFamily: 'Microsoft JhengHei',
+        // 對話框尺寸
+        const dlgWidth = 520;
+        const dlgHeight = onConfirm ? 200 : 160;
+        const radius = 20;
+        
+        // 陰影
+        const shadow = this.add.graphics();
+        shadow.fillStyle(0x000000, 0.4);
+        shadow.fillRoundedRect(-dlgWidth/2 + 6, -dlgHeight/2 + 6, dlgWidth, dlgHeight, radius);
+        dialogContainer.add(shadow);
+        
+        // 對話框背景
+        const bg = this.add.graphics();
+        bg.fillStyle(0x2d3561, 0.98);
+        bg.fillRoundedRect(-dlgWidth/2, -dlgHeight/2, dlgWidth, dlgHeight, radius);
+        bg.lineStyle(4, 0x5a67a8, 1);
+        bg.strokeRoundedRect(-dlgWidth/2, -dlgHeight/2, dlgWidth, dlgHeight, radius);
+        // 頂部裝飾線
+        bg.lineStyle(2, 0xfeca57, 0.6);
+        bg.beginPath();
+        bg.moveTo(-dlgWidth/2 + 30, -dlgHeight/2 + 50);
+        bg.lineTo(dlgWidth/2 - 30, -dlgHeight/2 + 50);
+        bg.strokePath();
+        
+        dialogContainer.add(bg);
+        
+        // 訊息文字
+        const text = this.add.text(0, onConfirm ? -30 : 0, message, {
+            fontSize: '20px',
+            fontFamily: '"Noto Sans TC", sans-serif',
             fill: '#ffffff',
             align: 'center',
-            wordWrap: { width: 500 }
+            wordWrap: { width: dlgWidth - 60 }
         }).setOrigin(0.5);
+        dialogContainer.add(text);
         
-        dialog.add([bg, text]);
+        if (onConfirm) {
+            // 確定按鈕 - 綠色
+            const confirmBtn = this.createSmallIllustrationButton(-100, 40, '✓ 確定', 0x27ae60, onConfirm);
+            dialogContainer.add(confirmBtn);
+            
+            // 取消按鈕 - 紅色
+            const cancelBtn = this.createSmallIllustrationButton(100, 40, '✗ 取消', 0xe74c3c, () => {
+                if (onCancel) onCancel();
+            });
+            dialogContainer.add(cancelBtn);
+            
+            // 點擊遮罩關閉（僅取消）
+            overlay.setInteractive();
+            overlay.on('pointerup', () => {
+                overlay.destroy();
+                dialogContainer.destroy();
+                if (onCancel) onCancel();
+            });
+        } else {
+            // 單純提示對話框 - 點擊任意處關閉
+            const hint = this.add.text(0, 50, '(點擊任意處關閉)', {
+                fontSize: '14px',
+                fontFamily: '"Noto Sans TC", sans-serif',
+                fill: '#888888'
+            }).setOrigin(0.5);
+            dialogContainer.add(hint);
+            
+            overlay.setInteractive();
+            this.input.once('pointerup', () => {
+                overlay.destroy();
+                dialogContainer.destroy();
+            });
+        }
         
-        // 確定按鈕
-        const confirmBtn = this.createSmallButton(-80, 30, '✓ 確定', () => {
-            overlay.destroy();
-            dialog.destroy();
-            onConfirm();
+        // 彈入動畫
+        dialogContainer.setScale(0.8);
+        dialogContainer.setAlpha(0);
+        this.tweens.add({
+            targets: dialogContainer,
+            scale: 1,
+            alpha: 1,
+            duration: 300,
+            ease: 'Back.easeOut'
         });
-        dialog.add(confirmBtn);
-        
-        // 取消按鈕
-        const cancelBtn = this.createSmallButton(80, 30, '✗ 取消', () => {
-            overlay.destroy();
-            dialog.destroy();
-        });
-        dialog.add(cancelBtn);
     }
     
-    createSmallButton(x, y, text, callback) {
+    createSmallIllustrationButton(x, y, text, baseColor, callback) {
         const container = this.add.container(x, y);
         
-        const bg = this.add.rectangle(0, 0, 100, 40, 0xe94560);
-        bg.setInteractive({ useHandCursor: true });
+        const btnWidth = 120;
+        const btnHeight = 45;
+        const radius = 12;
+        
+        // 陰影
+        const shadow = this.add.graphics();
+        shadow.fillStyle(0x000000, 0.25);
+        shadow.fillRoundedRect(-btnWidth/2 + 3, -btnHeight/2 + 3, btnWidth, btnHeight, radius);
+        container.add(shadow);
+        
+        // 背景
+        const bg = this.add.graphics();
+        bg.fillStyle(baseColor, 1);
+        bg.fillRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, radius);
+        bg.fillStyle(0xffffff, 0.2);
+        bg.fillRoundedRect(-btnWidth/2 + 2, -btnHeight/2 + 2, btnWidth - 4, 15, 8);
+        bg.lineStyle(2, 0xffffff, 0.4);
+        bg.strokeRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, radius);
+        
+        const hitArea = this.add.rectangle(0, 0, btnWidth, btnHeight, 0x000000, 0);
+        hitArea.setInteractive({ useHandCursor: true });
         
         const label = this.add.text(0, 0, text, {
             fontSize: '16px',
-            fontFamily: 'Microsoft JhengHei',
-            fill: '#ffffff'
+            fontFamily: '"Noto Sans TC", sans-serif',
+            fill: '#ffffff',
+            fontStyle: 'bold'
         }).setOrigin(0.5);
         
-        container.add([bg, label]);
+        container.add([bg, hitArea, label]);
         
-        bg.on('pointerover', () => {
-            bg.setFillStyle(0xff6b6b);
+        hitArea.on('pointerover', () => {
+            this.tweens.add({
+                targets: container,
+                scale: 1.08,
+                duration: 150,
+                ease: 'Back.easeOut'
+            });
             this.audio.playHover();
         });
         
-        bg.on('pointerout', () => {
-            bg.setFillStyle(0xe94560);
+        hitArea.on('pointerout', () => {
+            this.tweens.add({
+                targets: container,
+                scale: 1,
+                duration: 150,
+                ease: 'Back.easeOut'
+            });
         });
         
-        bg.on('pointerup', () => {
+        hitArea.on('pointerup', () => {
             this.audio.playClick();
             callback();
         });
