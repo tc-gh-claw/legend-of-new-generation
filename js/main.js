@@ -18,6 +18,7 @@ const config = {
     scene: [
         BootScene,
         MenuScene,
+        SettingsScene,
         WorldScene,
         BattleScene,
         QuizScene

@@ -9,6 +9,12 @@ class WorldScene extends Phaser.Scene {
     }
 
     create() {
+        // 獲取音效管理器
+        this.audio = AudioManager.getInstance(this);
+        
+        // 播放世界地圖背景音樂
+        this.audio.playWorldBgm();
+        
         // 創建地圖
         this.createMap();
         
@@ -190,28 +196,39 @@ class WorldScene extends Phaser.Scene {
     update() {
         // 玩家移動
         const speed = 160;
+        let isMoving = false;
         
         this.player.setVelocity(0);
         
         if (this.cursors.left.isDown) {
             this.player.setVelocityX(-speed);
+            isMoving = true;
         } else if (this.cursors.right.isDown) {
             this.player.setVelocityX(speed);
+            isMoving = true;
         }
         
         if (this.cursors.up.isDown) {
             this.player.setVelocityY(-speed);
+            isMoving = true;
         } else if (this.cursors.down.isDown) {
             this.player.setVelocityY(speed);
+            isMoving = true;
         }
         
-        // 更新動畫
-        if (this.player.body.velocity.x !== 0 || this.player.body.velocity.y !== 0) {
-            // 行走中
+        // 播放腳步聲（限制頻率避免過多音效）
+        if (isMoving && !this.footstepTimer) {
+            this.audio.playFootstep();
+            this.footstepTimer = this.time.delayedCall(300, () => {
+                this.footstepTimer = null;
+            });
         }
     }
     
     encounterEnemy(player, enemy) {
+        // 播放遭遇音效
+        this.audio.playEncounter();
+        
         // 進入戰鬥
         const enemyData = {
             type: enemy.enemyType,
@@ -257,6 +274,9 @@ class WorldScene extends Phaser.Scene {
         };
         
         localStorage.setItem('lng-save', JSON.stringify(saveData));
+        
+        // 播放存檔音效
+        this.audio.playSave();
         
         // 顯示存檔提示
         this.saveText.setText('💾 已自動存檔');

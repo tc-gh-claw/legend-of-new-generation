@@ -70,6 +70,9 @@ class BootScene extends Phaser.Scene {
         this.load.json('questions-english', 'assets/data/questions-english.json');
         this.load.json('questions-general', 'assets/data/questions-general.json');
         
+        // 載入音效資源
+        AudioManager.preload(this);
+        
         // 使用程式生成臨時素材
         this.generatePlaceholderAssets();
     }
@@ -77,6 +80,9 @@ class BootScene extends Phaser.Scene {
     create() {
         // 創建臨時動畫
         this.createAnimations();
+        
+        // 初始化音效管理器
+        AudioManager.init(this);
         
         // 進入主選單
         this.scene.start('MenuScene');

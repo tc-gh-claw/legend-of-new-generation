@@ -11,6 +11,12 @@ class MenuScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
+        // 獲取音效管理器
+        this.audio = AudioManager.getInstance(this);
+        
+        // 播放主選單背景音樂
+        this.audio.playMenuBgm();
+        
         // 背景
         this.createBackground();
         
@@ -136,6 +142,7 @@ class MenuScene extends Phaser.Scene {
         bg.on('pointerover', () => {
             bg.setTexture('ui-button-hover');
             buttonContainer.setScale(1.05);
+            this.audio.playHover();
         });
         
         bg.on('pointerout', () => {
@@ -149,6 +156,7 @@ class MenuScene extends Phaser.Scene {
         
         bg.on('pointerup', () => {
             buttonContainer.setScale(1.05);
+            this.audio.playClick();
             callback();
         });
         
@@ -156,6 +164,8 @@ class MenuScene extends Phaser.Scene {
     }
     
     startGame() {
+        this.audio.playConfirm();
+        
         // 檢查是否有存檔
         const hasSave = localStorage.getItem('lng-save');
         
@@ -164,27 +174,33 @@ class MenuScene extends Phaser.Scene {
             this.showConfirmDialog('已有存檔，開始新遊戲會覆蓋進度，確定嗎？', () => {
                 // 清除舊存檔
                 localStorage.removeItem('lng-save');
+                this.audio.stopBgm();
                 this.scene.start('WorldScene');
             });
         } else {
+            this.audio.stopBgm();
             this.scene.start('WorldScene');
         }
     }
     
     loadGame() {
+        this.audio.playClick();
         const saveData = localStorage.getItem('lng-save');
         
         if (saveData) {
             const data = JSON.parse(saveData);
             this.game.globals = { ...this.game.globals, ...data };
+            this.audio.stopBgm();
             this.scene.start('WorldScene');
         } else {
+            this.audio.playCancel();
             this.showDialog('沒有找到存檔！');
         }
     }
     
     openSettings() {
-        this.showDialog('設定功能開發中...');
+        this.audio.playClick();
+        this.scene.start('SettingsScene');
     }
     
     showDialog(message) {
@@ -275,13 +291,17 @@ class MenuScene extends Phaser.Scene {
         
         bg.on('pointerover', () => {
             bg.setFillStyle(0xff6b6b);
+            this.audio.playHover();
         });
         
         bg.on('pointerout', () => {
             bg.setFillStyle(0xe94560);
         });
         
-        bg.on('pointerup', callback);
+        bg.on('pointerup', () => {
+            this.audio.playClick();
+            callback();
+        });
         
         return container;
     }

@@ -20,6 +20,12 @@ class BattleScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
+        // 獲取音效管理器
+        this.audio = AudioManager.getInstance(this);
+        
+        // 播放戰鬥背景音樂
+        this.audio.playBattleBgm();
+        
         // 創建戰鬥背景
         this.createBattleBackground();
         
@@ -186,6 +192,7 @@ class BattleScene extends Phaser.Scene {
                 Math.min(255, ((color >> 8) & 0xFF) + 30),
                 Math.min(255, (color & 0xFF) + 30)
             ));
+            this.audio.playHover();
         });
         
         bg.on('pointerout', () => {
@@ -200,6 +207,7 @@ class BattleScene extends Phaser.Scene {
         bg.on('pointerup', () => {
             bg.setScale(1.05);
             if (!this.battleEnded && this.turn === 'player') {
+                this.audio.playClick();
                 callback();
             }
         });
@@ -240,6 +248,10 @@ class BattleScene extends Phaser.Scene {
         if (result.correct) {
             // 答對了！造成傷害
             const damage = result.damage || 20;
+            
+            // 播放魔法音效（根據科目）
+            this.audio.playMagic(result.subject || 'general');
+            
             this.dealDamageToEnemy(damage);
             this.showMessage(`✅ 答對了！造成 ${damage} 點傷害！`);
             
@@ -247,6 +259,7 @@ class BattleScene extends Phaser.Scene {
             this.animateAttack(this.playerSprite, this.enemySprite);
         } else {
             // 答錯了
+            this.audio.playMiss();
             this.showMessage('❌ 答錯了！這回合沒有造成傷害...');
         }
         
@@ -276,6 +289,12 @@ class BattleScene extends Phaser.Scene {
             
             // 更新血條
             this.updatePlayerHpBar();
+            
+            // 播放攻擊和受擊音效
+            this.audio.playAttack();
+            this.time.delayedCall(200, () => {
+                this.audio.playHit();
+            });
             
             // 攻擊動畫
             this.animateAttack(this.enemySprite, this.playerSprite);
@@ -356,11 +375,14 @@ class BattleScene extends Phaser.Scene {
         const escapeChance = 0.6; // 60%逃跑成功率
         
         if (Math.random() < escapeChance) {
+            this.audio.playConfirm();
             this.showMessage('🏃 成功逃跑了！');
+            this.audio.stopBgm(500);
             this.time.delayedCall(1500, () => {
                 this.scene.start(this.returnScene);
             });
         } else {
+            this.audio.playMiss();
             this.showMessage('❌ 逃跑失敗！');
             this.time.delayedCall(1500, () => {
                 this.enemyTurn();
@@ -376,6 +398,10 @@ class BattleScene extends Phaser.Scene {
             const expGain = 20;
             this.playerData.exp += expGain;
             
+            // 播放勝利音效和音樂
+            this.audio.playVictory();
+            this.audio.playBgm('bgm-victory', false);
+            
             this.showMessage(`🎉 戰鬥勝利！獲得 ${expGain} 經驗值！`);
             
             // 勝利動畫
@@ -389,10 +415,15 @@ class BattleScene extends Phaser.Scene {
             // 檢查升級
             if (this.playerData.exp >= this.playerData.level * 50) {
                 this.playerData.level++;
-                this.showMessage(`⭐ 升級了！達到等級 ${this.playerData.level}！`);
+                this.time.delayedCall(1500, () => {
+                    this.audio.playLevelUp();
+                    this.showMessage(`⭐ 升級了！達到等級 ${this.playerData.level}！`);
+                });
             }
         } else {
             // 失敗
+            this.audio.playDefeat();
+            this.audio.playBgm('bgm-gameover', false);
             this.showMessage('💀 戰鬥失敗...被傳送回村莊');
             this.playerData.hp = 1; // 保留1點HP
         }
