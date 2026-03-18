@@ -14,6 +14,7 @@ class BattleScene extends Phaser.Scene {
         this.returnScene = data.returnScene || 'WorldScene';
         this.turn = 'player'; // 'player' 或 'enemy'
         this.battleEnded = false;
+        this.quizActive = false; // 防止重複啟動QuizScene
     }
 
     create() {
@@ -230,12 +231,17 @@ class BattleScene extends Phaser.Scene {
     }
     
     startQuiz(subject) {
+        // 防止重複啟動
+        if (this.quizActive) return;
+        this.quizActive = true;
+        
         this.hideActionButtons();
         
         // 傳遞到QuizScene
         this.scene.launch('QuizScene', {
             subject: subject,
             onComplete: (result) => {
+                this.quizActive = false;
                 this.handleQuizResult(result);
             }
         });
