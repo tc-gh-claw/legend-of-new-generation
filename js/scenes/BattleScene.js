@@ -256,26 +256,42 @@ class BattleScene extends Phaser.Scene {
         this.scene.stop('QuizScene');
         
         if (result.correct) {
-            // 答對了！造成傷害
-            const damage = result.damage || 20;
-            
             // 播放魔法音效（根據科目）
             this.audio.playMagic(result.subject || 'general');
             
-            // 技能特效
-            this.createSkillEffect(result.subject, this.enemySprite.x, this.enemySprite.y);
-            
-            this.dealDamageToEnemy(damage);
-            this.showMessage(`✅ 答對了！造成 ${damage} 點傷害！`);
-            
-            // 攻擊動畫
-            this.time.delayedCall(300, () => {
-                this.animateAttack(this.playerSprite, this.enemySprite);
-            });
+            // 英文治療：增加HP，其他科目：造成傷害
+            if (result.subject === 'english') {
+                // 治療效果
+                const healAmount = result.damage || 20;
+                this.playerData.hp = Math.min(this.playerData.maxHp, this.playerData.hp + healAmount);
+                
+                // 更新玩家血條
+                this.updatePlayerHpBar();
+                
+                // 治療特效
+                this.createHealEffect(this.playerSprite.x, this.playerSprite.y);
+                
+                this.showMessage(`✅ 答對了！回復 ${healAmount} 點HP！`);
+                
+            } else {
+                // 攻擊效果
+                const damage = result.damage || 20;
+                
+                // 技能特效
+                this.createSkillEffect(result.subject, this.enemySprite.x, this.enemySprite.y);
+                
+                this.dealDamageToEnemy(damage);
+                this.showMessage(`✅ 答對了！造成 ${damage} 點傷害！`);
+                
+                // 攻擊動畫
+                this.time.delayedCall(300, () => {
+                    this.animateAttack(this.playerSprite, this.enemySprite);
+                });
+            }
         } else {
             // 答錯了
             this.audio.playMiss();
-            this.showMessage('❌ 答錯了！這回合沒有造成傷害...');
+            this.showMessage('❌ 答錯了！這回合沒有效果...');
         }
         
         // 檢查戰鬥結束
