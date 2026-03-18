@@ -27,6 +27,9 @@ class BossScene extends Phaser.Scene {
     }
 
     create() {
+        // 獲取音效管理器
+        this.audio = AudioManager.getInstance(this);
+        
         // 創建Boss戰場地
         this.createBossArena();
         

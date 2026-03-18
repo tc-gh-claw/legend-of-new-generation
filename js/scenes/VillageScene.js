@@ -27,6 +27,12 @@ class VillageScene extends Phaser.Scene {
     }
 
     create() {
+        // 獲取音效管理器
+        this.audio = AudioManager.getInstance(this);
+        
+        // 播放城鎮背景音樂
+        this.audio.playTownBgm();
+        
         // 創建村莊地圖
         this.createVillageMap();
         
@@ -317,19 +323,32 @@ class VillageScene extends Phaser.Scene {
     update() {
         // 玩家移動
         const speed = 160;
+        let isMoving = false;
         
         this.player.setVelocity(0);
         
         if (this.cursors.left.isDown) {
             this.player.setVelocityX(-speed);
+            isMoving = true;
         } else if (this.cursors.right.isDown) {
             this.player.setVelocityX(speed);
+            isMoving = true;
         }
         
         if (this.cursors.up.isDown) {
             this.player.setVelocityY(-speed);
+            isMoving = true;
         } else if (this.cursors.down.isDown) {
             this.player.setVelocityY(speed);
+            isMoving = true;
+        }
+        
+        // 播放腳步聲（限制頻率）
+        if (isMoving && !this.footstepTimer) {
+            this.audio.playFootstep();
+            this.footstepTimer = this.time.delayedCall(300, () => {
+                this.footstepTimer = null;
+            });
         }
 
         // 檢測NPC互動
@@ -437,6 +456,9 @@ class VillageScene extends Phaser.Scene {
         };
         
         localStorage.setItem('lng-save', JSON.stringify(saveData));
+        
+        // 播放存檔音效
+        this.audio.playSave();
         
         // 顯示存檔提示
         this.saveText.setText('💾 已保存進度');
