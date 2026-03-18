@@ -1,0 +1,289 @@
+/**
+ * WorldScene - 世界地圖場景
+ * 玩家可以在此探索、移動、進入戰鬥
+ */
+
+class WorldScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'WorldScene' });
+    }
+
+    create() {
+        // 創建地圖
+        this.createMap();
+        
+        // 創建玩家
+        this.createPlayer();
+        
+        // 創建敵人
+        this.createEnemies();
+        
+        // 設置相機
+        this.setupCamera();
+        
+        // 創建UI
+        this.createUI();
+        
+        // 設置輸入
+        this.cursors = this.input.keyboard.createCursorKeys();
+        
+        // 自動存檔
+        this.time.addEvent({
+            delay: 30000, // 每30秒
+            callback: this.autoSave,
+            callbackScope: this,
+            loop: true
+        });
+        
+        // 歡迎訊息
+        this.showWelcomeMessage();
+    }
+    
+    createMap() {
+        // 創建簡單的草地地圖
+        const mapWidth = 25;
+        const mapHeight = 19;
+        const tileSize = 32;
+        
+        // 創建地圖群組
+        this.groundLayer = this.add.group();
+        
+        for (let y = 0; y < mapHeight; y++) {
+            for (let x = 0; x < mapWidth; x++) {
+                const worldX = x * tileSize + tileSize / 2;
+                const worldY = y * tileSize + tileSize / 2;
+                
+                // 隨機草地變化
+                const grassType = Math.random() > 0.8 ? 'tile-stone' : 'tile-grass';
+                const tile = this.add.image(worldX, worldY, grassType);
+                tile.setDepth(0);
+                this.groundLayer.add(tile);
+            }
+        }
+        
+        // 添加一些裝飾（樹木/石頭）
+        this.decorations = this.physics.add.staticGroup();
+        
+        // 邊界牆
+        for (let x = 0; x < mapWidth; x++) {
+            this.decorations.create(x * tileSize + 16, 16, 'tile-wood');
+            this.decorations.create(x * tileSize + 16, (mapHeight - 1) * tileSize + 16, 'tile-wood');
+        }
+        for (let y = 1; y < mapHeight - 1; y++) {
+            this.decorations.create(16, y * tileSize + 16, 'tile-wood');
+            this.decorations.create((mapWidth - 1) * tileSize + 16, y * tileSize + 16, 'tile-wood');
+        }
+        
+        // 設置世界邊界
+        this.physics.world.setBounds(0, 0, mapWidth * tileSize, mapHeight * tileSize);
+    }
+    
+    createPlayer() {
+        // 創建玩家精靈
+        this.player = this.physics.add.sprite(400, 300, 'player');
+        this.player.setCollideWorldBounds(true);
+        this.player.setDepth(10);
+        
+        // 玩家數據
+        this.playerData = {
+            hp: this.game.globals.playerHP,
+            maxHp: this.game.globals.playerMaxHP,
+            mp: this.game.globals.playerMP,
+            maxMp: this.game.globals.playerMaxMP,
+            level: this.game.globals.playerLevel,
+            exp: this.game.globals.playerExp
+        };
+        
+        // 碰撞檢測
+        this.physics.add.collider(this.player, this.decorations);
+        
+        // 敵人碰撞（進入戰鬥）
+        this.physics.add.overlap(this.player, this.enemies, this.encounterEnemy, null, this);
+    }
+    
+    createEnemies() {
+        this.enemies = this.physics.add.group();
+        
+        // 在地圖上隨機放置敵人
+        const enemyTypes = ['enemy-slime', 'enemy-goblin', 'enemy-mage'];
+        
+        for (let i = 0; i < 8; i++) {
+            const x = Phaser.Math.Between(100, 700);
+            const y = Phaser.Math.Between(100, 500);
+            const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+            
+            const enemy = this.enemies.create(x, y, type);
+            enemy.setDepth(5);
+            enemy.enemyType = type;
+            
+            // 簡單的巡邏AI
+            this.tweens.add({
+                targets: enemy,
+                x: x + Phaser.Math.Between(-50, 50),
+                y: y + Phaser.Math.Between(-50, 50),
+                duration: 2000 + Math.random() * 2000,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+    }
+    
+    setupCamera() {
+        this.cameras.main.setBounds(0, 0, 800, 600);
+        this.cameras.main.startFollow(this.player);
+        this.cameras.main.setZoom(1);
+    }
+    
+    createUI() {
+        const uiContainer = this.add.container(10, 10);
+        uiContainer.setScrollFactor(0);
+        uiContainer.setDepth(100);
+        
+        // 狀態面板背景
+        const panelBg = this.add.rectangle(0, 0, 200, 100, 0x000000, 0.7);
+        panelBg.setOrigin(0, 0);
+        uiContainer.add(panelBg);
+        
+        // 玩家名稱
+        this.uiName = this.add.text(10, 10, '勇者', {
+            fontSize: '16px',
+            fontFamily: 'Microsoft JhengHei',
+            fill: '#feca57'
+        });
+        uiContainer.add(this.uiName);
+        
+        // 等級
+        this.uiLevel = this.add.text(10, 35, `Lv.${this.playerData.level}`, {
+            fontSize: '14px',
+            fontFamily: 'Microsoft JhengHei',
+            fill: '#ffffff'
+        });
+        uiContainer.add(this.uiLevel);
+        
+        // HP條
+        this.uiHpText = this.add.text(10, 55, `HP: ${this.playerData.hp}/${this.playerData.maxHp}`, {
+            fontSize: '12px',
+            fontFamily: 'Microsoft JhengHei',
+            fill: '#ff6b6b'
+        });
+        uiContainer.add(this.uiHpText);
+        
+        // MP條
+        this.uiMpText = this.add.text(10, 75, `MP: ${this.playerData.mp}/${this.playerData.maxMp}`, {
+            fontSize: '12px',
+            fontFamily: 'Microsoft JhengHei',
+            fill: '#74b9ff'
+        });
+        uiContainer.add(this.uiMpText);
+        
+        // 存檔提示
+        this.saveText = this.add.text(400, 550, '', {
+            fontSize: '14px',
+            fontFamily: 'Microsoft JhengHei',
+            fill: '#2ecc71'
+        }).setOrigin(0.5);
+        this.saveText.setScrollFactor(0);
+        this.saveText.setDepth(100);
+    }
+    
+    update() {
+        // 玩家移動
+        const speed = 160;
+        
+        this.player.setVelocity(0);
+        
+        if (this.cursors.left.isDown) {
+            this.player.setVelocityX(-speed);
+        } else if (this.cursors.right.isDown) {
+            this.player.setVelocityX(speed);
+        }
+        
+        if (this.cursors.up.isDown) {
+            this.player.setVelocityY(-speed);
+        } else if (this.cursors.down.isDown) {
+            this.player.setVelocityY(speed);
+        }
+        
+        // 更新動畫
+        if (this.player.body.velocity.x !== 0 || this.player.body.velocity.y !== 0) {
+            // 行走中
+        }
+    }
+    
+    encounterEnemy(player, enemy) {
+        // 進入戰鬥
+        const enemyData = {
+            type: enemy.enemyType,
+            name: this.getEnemyName(enemy.enemyType),
+            hp: 50,
+            maxHp: 50
+        };
+        
+        // 停止玩家移動
+        this.player.setVelocity(0);
+        
+        // 切換到戰鬥場景
+        this.scene.start('BattleScene', {
+            player: this.playerData,
+            enemy: enemyData,
+            returnScene: 'WorldScene'
+        });
+        
+        // 移除這個敵人（稍後重生）
+        enemy.destroy();
+    }
+    
+    getEnemyName(type) {
+        const names = {
+            'enemy-slime': '史萊姆',
+            'enemy-goblin': '哥布林',
+            'enemy-mage': '黑暗法師'
+        };
+        return names[type] || '神秘怪物';
+    }
+    
+    autoSave() {
+        // 保存遊戲數據
+        const saveData = {
+            playerHP: this.playerData.hp,
+            playerMaxHP: this.playerData.maxHp,
+            playerMP: this.playerData.mp,
+            playerMaxMP: this.playerData.maxMp,
+            playerLevel: this.playerData.level,
+            playerExp: this.playerData.exp,
+            currentMap: this.game.globals.currentMap,
+            timestamp: new Date().toISOString()
+        };
+        
+        localStorage.setItem('lng-save', JSON.stringify(saveData));
+        
+        // 顯示存檔提示
+        this.saveText.setText('💾 已自動存檔');
+        this.time.delayedCall(2000, () => {
+            this.saveText.setText('');
+        });
+    }
+    
+    showWelcomeMessage() {
+        const welcomeText = this.add.text(400, 200, '🌍 歡迎來到新世代傳說！\n使用方向鍵移動，遭遇敵人進入戰鬥！', {
+            fontSize: '18px',
+            fontFamily: 'Microsoft JhengHei',
+            fill: '#ffffff',
+            align: 'center',
+            backgroundColor: '#00000088',
+            padding: { x: 20, y: 10 }
+        }).setOrigin(0.5);
+        welcomeText.setScrollFactor(0);
+        welcomeText.setDepth(100);
+        
+        // 3秒後消失
+        this.tweens.add({
+            targets: welcomeText,
+            alpha: 0,
+            delay: 3000,
+            duration: 1000,
+            onComplete: () => welcomeText.destroy()
+        });
+    }
+}

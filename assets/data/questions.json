@@ -1,0 +1,200 @@
+{
+  "subjects": {
+    "math": {
+      "name": "數學",
+      "nameEn": "Mathematics",
+      "icon": "🔢",
+      "color": "#3498db",
+      "description": "以邏輯計算為基礎的攻擊",
+      "questions": [
+        {
+          "id": "m001",
+          "question": "3 × 7 = ?",
+          "options": ["18", "21", "24", "27"],
+          "correct": 1,
+          "difficulty": 1,
+          "topic": "multiplication"
+        },
+        {
+          "id": "m002",
+          "question": "100 - 37 = ?",
+          "options": ["53", "63", "73", "43"],
+          "correct": 1,
+          "difficulty": 1,
+          "topic": "subtraction"
+        },
+        {
+          "id": "m003",
+          "question": "如果 2x + 4 = 12，那麼 x = ?",
+          "options": ["3", "4", "5", "6"],
+          "correct": 1,
+          "difficulty": 2,
+          "topic": "algebra"
+        },
+        {
+          "id": "m004",
+          "question": "一個三角形有幾個角？",
+          "options": ["2個", "3個", "4個", "5個"],
+          "correct": 1,
+          "difficulty": 1,
+          "topic": "geometry"
+        },
+        {
+          "id": "m005",
+          "question": "0.5 等於幾分之幾？",
+          "options": ["1/2", "1/3", "1/4", "2/3"],
+          "correct": 0,
+          "difficulty": 1,
+          "topic": "fractions"
+        }
+      ]
+    },
+    "science": {
+      "name": "科學",
+      "nameEn": "Science",
+      "icon": "⚗️",
+      "color": "#2ecc71",
+      "description": "掌控元素之力的魔法",
+      "questions": [
+        {
+          "id": "s001",
+          "question": "水的化學式是什麼？",
+          "options": ["CO₂", "H₂O", "O₂", "NaCl"],
+          "correct": 1,
+          "difficulty": 1,
+          "topic": "chemistry"
+        },
+        {
+          "id": "s002",
+          "question": "太陽系中最大的行星是？",
+          "options": ["地球", "火星", "木星", "土星"],
+          "correct": 2,
+          "difficulty": 1,
+          "topic": "astronomy"
+        },
+        {
+          "id": "s003",
+          "question": "植物進行光合作用需要什麼？",
+          "options": ["陽光", "水", "二氧化碳", "以上皆是"],
+          "correct": 3,
+          "difficulty": 1,
+          "topic": "biology"
+        },
+        {
+          "id": "s004",
+          "question": "人體有多少塊骨頭？",
+          "options": ["106塊", "206塊", "306塊", "406塊"],
+          "correct": 1,
+          "difficulty": 2,
+          "topic": "biology"
+        },
+        {
+          "id": "s005",
+          "question": "閃電和雷聲哪個先出現？",
+          "options": ["閃電", "雷聲", "同時", "不一定"],
+          "correct": 0,
+          "difficulty": 1,
+          "topic": "physics"
+        }
+      ]
+    },
+    "english": {
+      "name": "英文",
+      "nameEn": "English",
+      "icon": "📖",
+      "color": "#f39c12",
+      "description": "以語言之力治療與輔助",
+      "questions": [
+        {
+          "id": "e001",
+          "question": ""Apple" 的中文意思是？",
+          "options": ["香蕉", "橙子", "蘋果", "葡萄"],
+          "correct": 2,
+          "difficulty": 1,
+          "topic": "vocabulary"
+        },
+        {
+          "id": "e002",
+          "question": ""Good morning" 是什麼時候用的？",
+          "options": ["早上", "下午", "晚上", "睡覺前"],
+          "correct": 0,
+          "difficulty": 1,
+          "topic": "greetings"
+        },
+        {
+          "id": "e003",
+          "question": ""I am a student." 中的 "student" 意思是？",
+          "options": ["老師", "學生", "醫生", "工人"],
+          "correct": 1,
+          "difficulty": 1,
+          "topic": "vocabulary"
+        },
+        {
+          "id": "e004",
+          "question": ""How are you?" 應該怎樣回答？",
+          "options": ["Goodbye!", "I'm fine, thank you.", "See you!", "Nice to meet you."],
+          "correct": 1,
+          "difficulty": 1,
+          "topic": "dialogue"
+        },
+        {
+          "id": "e005",
+          "question": ""Book" 的複數形式是？",
+          "options": ["Bookes", "Books", "Booking", "Book"],
+          "correct": 1,
+          "difficulty": 2,
+          "topic": "grammar"
+        }
+      ]
+    },
+    "general": {
+      "name": "常識",
+      "nameEn": "General Knowledge",
+      "icon": "🌍",
+      "color": "#9b59b6",
+      "description": "以知識護盾保護隊友",
+      "questions": [
+        {
+          "id": "g001",
+          "question": "中國的首都是哪裡？",
+          "options": ["上海", "北京", "廣州", "深圳"],
+          "correct": 1,
+          "difficulty": 1,
+          "topic": "geography"
+        },
+        {
+          "id": "g002",
+          "question": "一年有幾個季節？",
+          "options": ["2個", "3個", "4個", "5個"],
+          "correct": 2,
+          "difficulty": 1,
+          "topic": "nature"
+        },
+        {
+          "id": "g003",
+          "question": "香港特別行政區的區花是什麼？",
+          "options": ["牡丹花", "紫荊花", "玫瑰花", "蓮花"],
+          "correct": 1,
+          "difficulty": 1,
+          "topic": "local"
+        },
+        {
+          "id": "g004",
+          "question": "下列哪個不是交通工具？",
+          "options": ["汽車", "飛機", "書包", "輪船"],
+          "correct": 2,
+          "difficulty": 1,
+          "topic": "daily"
+        },
+        {
+          "id": "g005",
+          "question": "農曆新年通常在哪個月份？",
+          "options": ["1月或2月", "3月或4月", "5月或6月", "7月或8月"],
+          "correct": 0,
+          "difficulty": 1,
+          "topic": "culture"
+        }
+      ]
+    }
+  }
+}
