@@ -127,38 +127,39 @@ class BattleScene extends Phaser.Scene {
         this.actionButtons = this.add.container(0, 0);
         this.uiPanel.add(this.actionButtons);
         
-        // 攻擊按鈕（數學題目）
-        this.createActionButton(150, 480, '🔢 數學攻擊', 0x3498db, () => {
+        // 攻擊按鈕（數學題目）- 注意：坐標相對於 uiPanel (y=450)
+        this.createActionButton(150, 30, '🔢 數學攻擊', 0x3498db, function() {
             this.startQuiz('math');
         });
         
         // 技能按鈕（科學題目）
-        this.createActionButton(400, 480, '⚗️ 科學魔法', 0x2ecc71, () => {
+        this.createActionButton(400, 30, '⚗️ 科學魔法', 0x2ecc71, function() {
             this.startQuiz('science');
         });
         
         // 治療按鈕（英文題目）
-        this.createActionButton(650, 480, '📖 英文治療', 0xf39c12, () => {
+        this.createActionButton(650, 30, '📖 英文治療', 0xf39c12, function() {
             this.startQuiz('english');
         });
         
         // 防禦按鈕（常識題目）
-        this.createActionButton(275, 550, '🛡️ 常識防禦', 0x9b59b6, () => {
+        this.createActionButton(275, 100, '🛡️ 常識防禦', 0x9b59b6, function() {
             this.startQuiz('general');
         });
         
         // 逃跑按鈕
-        this.createActionButton(525, 550, '🏃 逃跑', 0xe74c3c, () => {
+        this.createActionButton(525, 100, '🏃 逃跑', 0xe74c3c, function() {
             this.tryEscape();
         });
         
-        // 戰鬥訊息區域
-        this.battleMessage = this.add.text(400, 420, '', {
+        // 戰鬥訊息區域 (相對於 uiPanel)
+        this.battleMessage = this.add.text(400, -30, '', {
             fontSize: '18px',
             fontFamily: 'Microsoft JhengHei',
             fill: '#ffffff',
             align: 'center'
         }).setOrigin(0.5);
+        this.uiPanel.add(this.battleMessage);
         
         // 隱藏按鈕函數
         this.hideActionButtons = () => {
@@ -209,7 +210,8 @@ class BattleScene extends Phaser.Scene {
             bg.setScale(1.05);
             if (!this.battleEnded && this.turn === 'player') {
                 this.audio.playClick();
-                callback();
+                // 使用 call 確保 callback 中嘅 this 指向正確
+                callback.call(this);
             }
         });
     }
