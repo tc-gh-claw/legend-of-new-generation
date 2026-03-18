@@ -60,18 +60,11 @@ class BootScene extends Phaser.Scene {
         
         // ===== 載入素材 =====
         
-        // 臨時用圖形（稍後替換為真實素材）
-        // 玩家角色
-        this.load.setBaseURL('data:image/svg+xml;base64,');
-        
         // 載入JSON題目數據
-        this.load.json('questions-math', 'assets/data/questions-math.json');
-        this.load.json('questions-science', 'assets/data/questions-science.json');
-        this.load.json('questions-english', 'assets/data/questions-english.json');
-        this.load.json('questions-general', 'assets/data/questions-general.json');
+        this.load.json('questions-math', 'assets/data/questions.json');
         
-        // 載入音效資源
-        AudioManager.preload(this);
+        // 載入音效資源 (如果有)
+        // AudioManager.preload(this);
         
         // 使用程式生成臨時素材
         this.generatePlaceholderAssets();
@@ -81,8 +74,8 @@ class BootScene extends Phaser.Scene {
         // 創建臨時動畫
         this.createAnimations();
         
-        // 初始化音效管理器
-        AudioManager.init(this);
+        // 初始化音效管理器 (暫時禁用，等待音效文件)
+        // AudioManager.init(this);
         
         // 進入主選單
         this.scene.start('MenuScene');
