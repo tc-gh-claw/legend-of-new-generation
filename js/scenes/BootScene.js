@@ -49,13 +49,35 @@ class BootScene extends Phaser.Scene {
         this.load.on('progress', (value) => {
             percentText.setText(parseInt(value * 100) + '%');
             progressBar.clear();
-            // 漸變進度條
-            const gradient = progressBar.createLinearGradient(width / 2 - 160, 0, width / 2 + 140, 0);
-            gradient.addColorStop(0, 0xe94560);
-            gradient.addColorStop(0.5, 0xfeca57);
-            gradient.addColorStop(1, 0x48dbfb);
-            progressBar.fillStyle(gradient, 1);
-            progressBar.fillRoundedRect(width / 2 - 160, height / 2 - 20, 320 * value, 30, 10);
+            // 漸變進度條 - 使用 Phaser 兼容方式
+            const barWidth = 320 * value;
+            const startX = width / 2 - 160;
+            const startY = height / 2 - 20;
+            
+            // 逐行繪製漸變效果
+            for (let i = 0; i < barWidth; i += 2) {
+                const ratio = i / barWidth;
+                let color;
+                if (ratio < 0.5) {
+                    // 從紅色到黃色
+                    const r = Math.floor(233 + (254 - 233) * (ratio * 2));
+                    const g = Math.floor(69 + (202 - 69) * (ratio * 2));
+                    const b = Math.floor(96 + (87 - 96) * (ratio * 2));
+                    color = Phaser.Display.Color.GetColor(r, g, b);
+                } else {
+                    // 從黃色到藍色
+                    const r = Math.floor(254 + (72 - 254) * ((ratio - 0.5) * 2));
+                    const g = Math.floor(202 + (219 - 202) * ((ratio - 0.5) * 2));
+                    const b = Math.floor(87 + (251 - 87) * ((ratio - 0.5) * 2));
+                    color = Phaser.Display.Color.GetColor(r, g, b);
+                }
+                progressBar.fillStyle(color, 1);
+                progressBar.fillRect(startX + i, startY, 2, 30);
+            }
+            // 圓角遮罩效果
+            if (value > 0) {
+                progressBar.fillStyle(0xffffff, 0);
+            }
         });
         
         this.load.on('fileprogress', (file) => {
@@ -97,7 +119,7 @@ class BootScene extends Phaser.Scene {
         // 插畫風格漸變背景
         const graphics = this.add.graphics();
         
-        // 柔和漸變背景
+        // 柔和漸層背景
         for (let y = 0; y < 600; y += 2) {
             const ratio = y / 600;
             const color = Phaser.Display.Color.Interpolate.ColorWithColor(
@@ -308,11 +330,9 @@ class BootScene extends Phaser.Scene {
         graphics.generateTexture('tile-wood', 32, 32);
         graphics.clear();
         
-        // ===== UI元素 - 按鈕 (圓角、漸變) =====
-        const buttonGradient = graphics.createLinearGradient(0, 0, 0, 60);
-        buttonGradient.addColorStop(0, 0x5a67a8);
-        buttonGradient.addColorStop(1, 0x4a5568);
-        graphics.fillStyle(buttonGradient, 1);
+        // ===== UI元素 - 按鈕 (圓角、實色風格) =====
+        // 使用實色而非漸變（Phaser Graphics 不支持 createLinearGradient）
+        graphics.fillStyle(0x5a67a8, 1);
         graphics.fillRoundedRect(0, 0, 200, 60, 12);
         // 邊框
         graphics.lineStyle(2, 0x7c8cb8, 1);
@@ -324,10 +344,7 @@ class BootScene extends Phaser.Scene {
         graphics.clear();
         
         // ===== UI元素 - 按鈕懸停 (更亮) =====
-        const buttonHoverGradient = graphics.createLinearGradient(0, 0, 0, 60);
-        buttonHoverGradient.addColorStop(0, 0x6b7cb9);
-        buttonHoverGradient.addColorStop(1, 0x5a67a8);
-        graphics.fillStyle(buttonHoverGradient, 1);
+        graphics.fillStyle(0x6b7cb9, 1);
         graphics.fillRoundedRect(0, 0, 200, 60, 12);
         graphics.lineStyle(2, 0xfeca57, 1);
         graphics.strokeRoundedRect(0, 0, 200, 60, 12);
