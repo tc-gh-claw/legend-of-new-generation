@@ -111,6 +111,17 @@ class BootScene extends Phaser.Scene {
         // 初始化音效管理器
         AudioManager.init(this);
         
+        // 載入題目數據到全局變量
+        const questionsData = this.cache.json.get('questions');
+        if (questionsData) {
+            this.game.globals.questions = questionsData;
+            console.log('✅ BootScene: 題目數據已載入，共', 
+                Object.values(questionsData.subjects).reduce((sum, s) => sum + s.questions.length, 0), 
+                '題');
+        } else {
+            console.warn('⚠️ BootScene: 無法載入題目數據');
+        }
+        
         // 進入主選單
         this.scene.start('MenuScene');
     }
