@@ -681,9 +681,8 @@ class BattleScene extends Phaser.Scene {
             const expGain = 20;
             this.playerData.exp += expGain;
             
-            // 播放勝利音效和音樂
+            // 播放勝利音效（會自動停止BGM）
             this.audio.playVictory();
-            this.audio.playBgm('bgm-victory', false);
             
             this.showMessage(`🎉 戰鬥勝利！獲得 ${expGain} 經驗值！`);
             
@@ -706,7 +705,6 @@ class BattleScene extends Phaser.Scene {
         } else {
             // 失敗
             this.audio.playDefeat();
-            this.audio.playBgm('bgm-gameover', false);
             this.showMessage('💀 戰鬥失敗...被傳送回村莊');
             this.playerData.hp = 1; // 保留1點HP
         }
