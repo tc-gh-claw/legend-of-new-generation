@@ -28,8 +28,6 @@ const config = {
         BattleScene,
         QuizScene,
         ShopScene,
-        InventorySystem,
-        QuestSystem,
         LevelUpScene
     ]
 };
