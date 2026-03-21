@@ -15,6 +15,11 @@ class BattleScene extends Phaser.Scene {
         this.turn = 'player'; // 'player' 或 'enemy'
         this.battleEnded = false;
         this.quizActive = false; // 防止重複啟動QuizScene
+        
+        // 🔥 連擊系統初始化
+        this.comboCount = 0;
+        this.maxCombo = 0;
+        this.comboMultiplier = 0.1; // 每連擊增加10%傷害
     }
 
     create() {
@@ -35,6 +40,9 @@ class BattleScene extends Phaser.Scene {
         
         // 創建UI
         this.createBattleUI();
+        
+        // 創建連擊顯示
+        this.createComboDisplay();
         
         // 開始戰鬥
         this.startBattle();
@@ -175,6 +183,46 @@ class BattleScene extends Phaser.Scene {
         };
     }
     
+    // 🔥 創建連擊顯示
+    createComboDisplay() {
+        // 連擊數顯示容器
+        this.comboContainer = this.add.container(400, 100);
+        
+        // 連擊背景光環
+        this.comboBg = this.add.circle(0, 0, 45, 0xff6600, 0.3);
+        this.comboContainer.add(this.comboBg);
+        
+        // 連擊數文字
+        this.comboText = this.add.text(0, -5, '0', {
+            fontSize: '36px',
+            fontFamily: 'Microsoft JhengHei',
+            fill: '#ffffff',
+            stroke: '#ff6600',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+        this.comboContainer.add(this.comboText);
+        
+        // 連擊標籤
+        this.comboLabel = this.add.text(0, 20, 'COMBO', {
+            fontSize: '14px',
+            fontFamily: 'Microsoft JhengHei',
+            fill: '#ff6600'
+        }).setOrigin(0.5);
+        this.comboContainer.add(this.comboLabel);
+        
+        // 傷害加成顯示
+        this.comboBonusText = this.add.text(0, 38, '+0%', {
+            fontSize: '12px',
+            fontFamily: 'Microsoft JhengHei',
+            fill: '#ffff00'
+        }).setOrigin(0.5);
+        this.comboContainer.add(this.comboBonusText);
+        
+        // 初始隱藏
+        this.comboContainer.setVisible(false);
+        this.comboContainer.setScale(0);
+    }
+    
     createActionButton(x, y, text, color, callback) {
         const button = this.add.container(x, y);
         
@@ -255,11 +303,144 @@ class BattleScene extends Phaser.Scene {
         });
     }
     
+    // 🔥 更新連擊顯示
+    updateComboDisplay() {
+        if (this.comboCount <= 0) {
+            // 隱藏連擊顯示
+            this.tweens.add({
+                targets: this.comboContainer,
+                scale: 0,
+                duration: 300,
+                ease: 'Back.in',
+                onComplete: () => {
+                    this.comboContainer.setVisible(false);
+                }
+            });
+            return;
+        }
+        
+        // 顯示連擊容器
+        this.comboContainer.setVisible(true);
+        
+        // 計算傷害加成
+        const bonusPercent = Math.floor(this.comboCount * this.comboMultiplier * 100);
+        
+        // 更新文字
+        this.comboText.setText(this.comboCount.toString());
+        this.comboBonusText.setText(`+${bonusPercent}%`);
+        
+        // 根據連擊數改變顏色
+        let color = '#ffffff';
+        let strokeColor = '#ff6600';
+        if (this.comboCount >= 10) {
+            color = '#ff0000';
+            strokeColor = '#ffff00';
+        } else if (this.comboCount >= 5) {
+            color = '#ff6600';
+            strokeColor = '#ff0000';
+        } else if (this.comboCount >= 3) {
+            color = '#ffff00';
+            strokeColor = '#ff6600';
+        }
+        
+        this.comboText.setStyle({
+            fontSize: '36px',
+            fontFamily: 'Microsoft JhengHei',
+            fill: color,
+            stroke: strokeColor,
+            strokeThickness: 4
+        });
+        
+        // 彈出動畫
+        this.tweens.add({
+            targets: this.comboContainer,
+            scale: { from: 0.5, to: 1.2 },
+            duration: 200,
+            yoyo: true,
+            ease: 'Back.out'
+        });
+        
+        // 背景脈動效果
+        this.tweens.add({
+            targets: this.comboBg,
+            scale: { from: 1, to: 1.3 },
+            alpha: { from: 0.3, to: 0.6 },
+            duration: 400,
+            yoyo: true
+        });
+    }
+    
+    // 🔥 增加連擊
+    addCombo() {
+        this.comboCount++;
+        if (this.comboCount > this.maxCombo) {
+            this.maxCombo = this.comboCount;
+        }
+        this.updateComboDisplay();
+        
+        // 連擊音效（高連擊時播放特殊音效）
+        if (this.comboCount === 5 || this.comboCount === 10) {
+            // 里程碑連擊特效
+            this.createComboMilestoneEffect();
+        }
+    }
+    
+    // 🔥 重置連擊
+    resetCombo() {
+        if (this.comboCount > 0) {
+            this.comboCount = 0;
+            this.updateComboDisplay();
+        }
+    }
+    
+    // 🔥 連擊里程碑特效
+    createComboMilestoneEffect() {
+        const milestoneText = this.add.text(400, 200, `${this.comboCount} COMBO!`, {
+            fontSize: '48px',
+            fontFamily: 'Microsoft JhengHei',
+            fill: '#ffff00',
+            stroke: '#ff0000',
+            strokeThickness: 6
+        }).setOrigin(0.5);
+        
+        this.tweens.add({
+            targets: milestoneText,
+            y: 150,
+            scale: { from: 0.5, to: 1.5 },
+            alpha: { from: 1, to: 0 },
+            duration: 1500,
+            ease: 'Power2',
+            onComplete: () => milestoneText.destroy()
+        });
+        
+        // 煙花效果
+        for (let i = 0; i < 12; i++) {
+            const particle = this.add.circle(400, 250, 8, [0xff0000, 0xffff00, 0xff6600][i % 3]);
+            
+            const angle = (i / 12) * Math.PI * 2;
+            const distance = 100 + Math.random() * 50;
+            
+            this.tweens.add({
+                targets: particle,
+                x: 400 + Math.cos(angle) * distance,
+                y: 250 + Math.sin(angle) * distance,
+                alpha: 0,
+                scale: { from: 1, to: 0 },
+                duration: 800,
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
+        }
+    }
+    
     handleQuizResult(result) {
         // 關閉QuizScene
         this.scene.stop('QuizScene');
         
         if (result.correct) {
+            // 🔥 答對了 - 增加連擊
+            this.addCombo();
+            
             // 播放魔法音效（根據科目）
             this.audio.playMagic(result.subject || 'general');
             
@@ -275,7 +456,7 @@ class BattleScene extends Phaser.Scene {
                 // 治療特效
                 this.createHealEffect(this.playerSprite.x, this.playerSprite.y);
                 
-                this.showMessage(`✅ 答對了！回復 ${healAmount} 點HP！`);
+                this.showMessage(`✅ 答對了！回復 ${healAmount} 點HP！連擊x${this.comboCount}`);
                 
             } else {
                 // 攻擊效果 - 基於等級和攻擊力計算傷害
@@ -285,6 +466,10 @@ class BattleScene extends Phaser.Scene {
                 
                 // 傷害公式：基礎傷害 + (攻擊力 * 0.5) + (等級 * 2)
                 let damage = Math.floor(baseDamage + (playerAttack * 0.5) + (playerLevel * 2));
+                
+                // 🔥 連擊傷害加成
+                const comboBonus = 1 + (this.comboCount * this.comboMultiplier);
+                damage = Math.floor(damage * comboBonus);
                 
                 // Boss戰額外加成
                 if (this.enemyData.isBoss || this.enemyData.type === 'boss') {
@@ -297,9 +482,9 @@ class BattleScene extends Phaser.Scene {
                 
                 if (isCrit) {
                     damage = Math.floor(damage * 2);
-                    this.showMessage(`💥 暴擊！造成 ${damage} 點傷害！`);
+                    this.showMessage(`💥 暴擊！造成 ${damage} 點傷害！連擊x${this.comboCount}`);
                 } else {
-                    this.showMessage(`✅ 答對了！造成 ${damage} 點傷害！`);
+                    this.showMessage(`✅ 答對了！造成 ${damage} 點傷害！連擊x${this.comboCount}`);
                 }
                 
                 // 技能特效
@@ -318,6 +503,9 @@ class BattleScene extends Phaser.Scene {
                 });
             }
         } else {
+            // 🔥 答錯了 - 重置連擊
+            this.resetCombo();
+            
             // 答錯了
             this.audio.playMiss();
             this.showMessage('❌ 答錯了！這回合沒有效果...');
@@ -741,6 +929,9 @@ class BattleScene extends Phaser.Scene {
     tryEscape() {
         this.hideActionButtons();
         
+        // 🔥 逃跑重置連擊
+        this.resetCombo();
+        
         const escapeChance = 0.6; // 60%逃跑成功率
         
         if (Math.random() < escapeChance) {
@@ -767,14 +958,22 @@ class BattleScene extends Phaser.Scene {
             let expGain = 20;
             let goldGain = 10;
 
+            // 🔥 連擊獎勵經驗值
+            const comboExpBonus = Math.floor(this.maxCombo * 2);
+            expGain += comboExpBonus;
+
             // Boss戰獎勵加成
             const isBoss = this.enemyData.isBoss || this.enemyData.type === 'boss' || this.enemyData.bossId;
             if (isBoss) {
                 expGain = this.enemyData.exp || 100;  // Boss給大量經驗
                 goldGain = this.enemyData.gold || 200; // Boss給大量金幣
-                this.showMessage(`👑 擊敗Boss！獲得 ${expGain} 經驗值！`);
+                this.showMessage(`👑 擊敗Boss！獲得 ${expGain} 經驗值！最高連擊x${this.maxCombo}`);
             } else {
-                this.showMessage(`🎉 戰鬥勝利！獲得 ${expGain} 經驗值！`);
+                if (this.maxCombo > 0) {
+                    this.showMessage(`🎉 戰鬥勝利！獲得 ${expGain} 經驗值！(連擊獎勵+${comboExpBonus})`);
+                } else {
+                    this.showMessage(`🎉 戰鬥勝利！獲得 ${expGain} 經驗值！`);
+                }
             }
 
             // 播放勝利音效
@@ -796,7 +995,7 @@ class BattleScene extends Phaser.Scene {
 
                 this.time.delayedCall(1500, () => {
                     this.audio.playLevelUp();
-                    this.showMessage(`⭐ 升級了！達到等級 ${this.playerData.level}！`);
+                    this.showMessage(`⭐ 升級了！達到等級 ${this.playerData.level}！最高連擊x${this.maxCombo}`);
 
                     // 延遲後進入升級場景
                     this.time.delayedCall(2000, () => {
@@ -836,14 +1035,6 @@ class BattleScene extends Phaser.Scene {
     returnToWorld() {
         // 返回世界地圖
         this.scene.start(this.returnScene);
-    };
-        this.game.globals.playerExp = this.playerData.exp;
-        this.game.globals.playerLevel = this.playerData.level;
-        
-        // 返回世界地圖
-        this.time.delayedCall(3000, () => {
-            this.scene.start(this.returnScene);
-        });
     }
     
     showMessage(text) {
