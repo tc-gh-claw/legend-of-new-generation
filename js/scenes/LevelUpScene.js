@@ -44,6 +44,9 @@ class LevelUpScene extends Phaser.Scene {
         // 屬性提升顯示
         this.showStatIncreases();
 
+        // 顏色變化提示
+        this.showColorChange();
+
         // 技能選擇提示
         this.add.text(width / 2, 220, '選擇一個技能提升：', {
             fontSize: '20px',
@@ -68,7 +71,7 @@ class LevelUpScene extends Phaser.Scene {
             const x = Phaser.Math.Between(0, 800);
             const y = Phaser.Math.Between(0, 600);
             const star = this.add.star(x, y, 5, 5, 10, 0xFFD700);
-            
+
             this.tweens.add({
                 targets: star,
                 scale: { from: 0.5, to: 1.5 },
@@ -108,7 +111,7 @@ class LevelUpScene extends Phaser.Scene {
 
         stats.forEach((stat, index) => {
             const x = (index - 1) * 150;
-            
+
             const statText = this.add.text(x, 0, `${stat.icon} ${stat.value}`, {
                 fontSize: '18px',
                 fontFamily: 'Microsoft JhengHei',
@@ -140,6 +143,91 @@ class LevelUpScene extends Phaser.Scene {
         this.playerData.hp = this.playerData.maxHp;
         this.playerData.maxMp += mpIncrease;
         this.playerData.mp = this.playerData.maxMp;
+
+        // 攻擊力提升 - 每級增加
+        this.playerData.attack = (this.playerData.attack || 10) + attackIncrease;
+
+        // 保存到全局
+        if (!this.game.globals.playerAttack) {
+            this.game.globals.playerAttack = 10;
+        }
+        this.game.globals.playerAttack = this.playerData.attack;
+    }
+
+    showColorChange() {
+        // 等級顏色對應表 - 主角身體顏色隨等級變化
+        const levelColors = [
+            { level: 1, color: 0xffffff, name: '白色', tint: 0xffffff },      // 初心者 - 白色
+            { level: 3, color: 0x2ecc71, name: '綠色', tint: 0x90EE90 },      // Lv.3 - 嫩綠
+            { level: 5, color: 0x3498db, name: '藍色', tint: 0x87CEEB },      // Lv.5 - 天藍
+            { level: 8, color: 0x9b59b6, name: '紫色', tint: 0xDDA0DD },      // Lv.8 - 紫羅蘭
+            { level: 10, color: 0xf39c12, name: '金色', tint: 0xFFD700 },     // Lv.10 - 黃金
+            { level: 15, color: 0xe74c3c, name: '紅色', tint: 0xFF6B6B },     // Lv.15 - 赤紅
+            { level: 20, color: 0x00ced1, name: '青色', tint: 0x00FFFF },     // Lv.20 - 青藍
+            { level: 30, color: 0xff1493, name: '粉色', tint: 0xFF69B4 },     // Lv.30 - 深粉
+            { level: 50, color: 0x1abc9c, name: '傳說', tint: 0x40E0D0 }      // Lv.50 - 傳說色
+        ];
+
+        // 找到當前等級對應的顏色
+        let currentColor = levelColors[0];
+        for (let i = levelColors.length - 1; i >= 0; i--) {
+            if (this.newLevel >= levelColors[i].level) {
+                currentColor = levelColors[i];
+                break;
+            }
+        }
+
+        // 保存顏色到全局
+        this.game.globals.playerColor = currentColor.tint;
+
+        // 顯示顏色變化
+        const colorContainer = this.add.container(400, 520);
+
+        const colorCircle = this.add.circle(-80, 0, 25, currentColor.color);
+        colorCircle.setStrokeStyle(3, 0xffffff);
+
+        const colorText = this.add.text(20, 0, `身體變為${currentColor.name}！`, {
+            fontSize: '18px',
+            fontFamily: 'Microsoft JhengHei',
+            fill: '#ffffff'
+        }).setOrigin(0.5);
+
+        colorContainer.add([colorCircle, colorText]);
+
+        // 顏色光環動畫
+        this.tweens.add({
+            targets: colorCircle,
+            scale: { from: 0.8, to: 1.2 },
+            alpha: { from: 0.7, to: 1 },
+            duration: 800,
+            yoyo: true,
+            repeat: 2,
+            ease: 'Sine.easeInOut'
+        });
+
+        // 升級特效 - 粒子爆發
+        this.createColorBurst(400, 520, currentColor.color);
+    }
+
+    createColorBurst(x, y, color) {
+        for (let i = 0; i < 12; i++) {
+            const particle = this.add.circle(x, y, 6, color);
+
+            const angle = (i / 12) * Math.PI * 2;
+            const distance = 60 + Math.random() * 40;
+
+            this.tweens.add({
+                targets: particle,
+                x: x + Math.cos(angle) * distance,
+                y: y + Math.sin(angle) * distance,
+                alpha: 0,
+                scale: { from: 1, to: 0.3 },
+                duration: 800,
+                delay: i * 30,
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
+        }
     }
 
     generateSkillOptions() {
@@ -212,11 +300,11 @@ class LevelUpScene extends Phaser.Scene {
             const y = startY;
 
             const card = this.createSkillCard(x, y, cardWidth, cardHeight, skill);
-            
+
             // 入場動畫
             card.setAlpha(0);
             card.y += 50;
-            
+
             this.tweens.add({
                 targets: card,
                 alpha: 1,
@@ -400,17 +488,17 @@ class LevelUpScene extends Phaser.Scene {
     // 靜態方法：檢查是否升級
     static checkLevelUp(playerData, expGained) {
         playerData.exp += expGained;
-        
+
         let leveledUp = false;
         let newLevel = playerData.level;
-        
-        // 經驗值需求公式：level * 100
-        while (playerData.exp >= newLevel * 100) {
-            playerData.exp -= newLevel * 100;
+
+        // 經驗值需求公式：每級固定100經驗值
+        while (playerData.exp >= 100) {
+            playerData.exp -= 100;
             newLevel++;
             leveledUp = true;
         }
-        
+
         return {
             leveledUp,
             oldLevel: playerData.level,
@@ -421,12 +509,11 @@ class LevelUpScene extends Phaser.Scene {
 
     // 靜態方法：獲取升級需求
     static getExpRequired(level) {
-        return level * 100;
+        return 100; // 每級固定100經驗值
     }
 
     // 靜態方法：獲取經驗值進度百分比
     static getExpProgress(playerData) {
-        const required = LevelUpScene.getExpRequired(playerData.level);
-        return (playerData.exp / required) * 100;
+        return (playerData.exp / 100) * 100;
     }
 }

@@ -53,20 +53,16 @@ class MenuScene extends Phaser.Scene {
         }).setOrigin(0.5);
         
         // 創建插畫風格選單按鈕
-        this.createIllustrationButton(width / 2, 300, '🎮 開始冒險', 0xe94560, () => {
+        this.createIllustrationButton(width / 2, 320, '🎮 開始冒險', 0xe94560, () => {
             this.startGame();
         });
         
-        this.createIllustrationButton(width / 2, 380, '📖 繼續遊戲', 0x3498db, () => {
-            this.loadGame();
-        });
-        
-        this.createIllustrationButton(width / 2, 460, '⚙️ 遊戲設定', 0x9b59b6, () => {
+        this.createIllustrationButton(width / 2, 420, '⚙️ 遊戲設定', 0x9b59b6, () => {
             this.openSettings();
         });
         
         // 版本號
-        this.add.text(width - 20, height - 20, 'v1.0.0', {
+        this.add.text(width - 20, height - 20, 'v1.1.0 升級版', {
             fontSize: '14px',
             fontFamily: '"Noto Sans TC", sans-serif',
             fill: '#666666'

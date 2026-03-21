@@ -69,6 +69,10 @@ class BattleScene extends Phaser.Scene {
         this.playerSprite.setScale(2);
         this.playerSprite.setFlipX(true);
         
+        // 應用玩家顏色（根據等級）
+        const playerColor = this.game.globals.playerColor || 0xffffff;
+        this.playerSprite.setTint(playerColor);
+        
         // 玩家血條背景
         this.playerHpBg = this.add.rectangle(200, 240, 120, 16, 0x000000);
         this.playerHpBar = this.add.rectangle(140, 240, 120, 16, 0xe74c3c);
@@ -274,14 +278,39 @@ class BattleScene extends Phaser.Scene {
                 this.showMessage(`✅ 答對了！回復 ${healAmount} 點HP！`);
                 
             } else {
-                // 攻擊效果
-                const damage = result.damage || 20;
+                // 攻擊效果 - 基於等級和攻擊力計算傷害
+                const baseDamage = result.damage || 20;
+                const playerLevel = this.playerData.level || 1;
+                const playerAttack = this.game.globals.playerAttack || (10 + (playerLevel - 1) * 2);
+                
+                // 傷害公式：基礎傷害 + (攻擊力 * 0.5) + (等級 * 2)
+                let damage = Math.floor(baseDamage + (playerAttack * 0.5) + (playerLevel * 2));
+                
+                // Boss戰額外加成
+                if (this.enemyData.isBoss || this.enemyData.type === 'boss') {
+                    damage = Math.floor(damage * 1.2); // 對Boss有20%傷害加成
+                }
+                
+                // 暴擊機率 (等級越高暴擊率越高)
+                const critChance = Math.min(0.1 + (playerLevel * 0.02), 0.5); // 最高50%暴擊率
+                let isCrit = Math.random() < critChance;
+                
+                if (isCrit) {
+                    damage = Math.floor(damage * 2);
+                    this.showMessage(`💥 暴擊！造成 ${damage} 點傷害！`);
+                } else {
+                    this.showMessage(`✅ 答對了！造成 ${damage} 點傷害！`);
+                }
                 
                 // 技能特效
                 this.createSkillEffect(result.subject, this.enemySprite.x, this.enemySprite.y);
                 
                 this.dealDamageToEnemy(damage);
-                this.showMessage(`✅ 答對了！造成 ${damage} 點傷害！`);
+                
+                // 暴擊特效
+                if (isCrit) {
+                    this.createCritEffect(this.enemySprite.x, this.enemySprite.y);
+                }
                 
                 // 攻擊動畫
                 this.time.delayedCall(300, () => {
@@ -630,6 +659,63 @@ class BattleScene extends Phaser.Scene {
         }
     }
     
+    createCritEffect(x, y) {
+        // 暴擊特效 - 紅色光芒爆發
+        const critText = this.add.text(x, y - 80, '💥 CRIT!', {
+            fontSize: '32px',
+            fontFamily: 'Microsoft JhengHei',
+            fill: '#ff0000',
+            stroke: '#ffffff',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+        
+        this.tweens.add({
+            targets: critText,
+            y: y - 150,
+            scale: { from: 0.5, to: 1.5 },
+            alpha: { from: 1, to: 0 },
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => critText.destroy()
+        });
+        
+        // 紅色爆發光環
+        for (let i = 0; i < 3; i++) {
+            const ring = this.add.circle(x, y, 30 + i * 20, 0xff0000, 0.5);
+            
+            this.tweens.add({
+                targets: ring,
+                scale: { from: 1, to: 2.5 },
+                alpha: { from: 0.5, to: 0 },
+                duration: 600,
+                delay: i * 100,
+                onComplete: () => ring.destroy()
+            });
+        }
+        
+        // 火焰粒子
+        for (let i = 0; i < 8; i++) {
+            const flame = this.add.text(x, y, '🔥', {
+                fontSize: '24px'
+            }).setOrigin(0.5);
+            
+            const angle = (i / 8) * Math.PI * 2;
+            const distance = 50 + Math.random() * 30;
+            
+            this.tweens.add({
+                targets: flame,
+                x: x + Math.cos(angle) * distance,
+                y: y + Math.sin(angle) * distance - 30,
+                alpha: 0,
+                rotation: Math.PI * 2,
+                duration: 800,
+                delay: i * 50,
+                ease: 'Power2',
+                onComplete: () => flame.destroy()
+            });
+        }
+    }
+    
     createVictoryEffect() {
         // 勝利特效
         for (let i = 0; i < 20; i++) {
@@ -675,17 +761,25 @@ class BattleScene extends Phaser.Scene {
     
     endBattle(victory) {
         this.battleEnded = true;
-        
+
         if (victory) {
-            // 勝利
-            const expGain = 20;
-            this.playerData.exp += expGain;
-            
-            // 播放勝利音效（會自動停止BGM）
+            // 基礎經驗值
+            let expGain = 20;
+            let goldGain = 10;
+
+            // Boss戰獎勵加成
+            const isBoss = this.enemyData.isBoss || this.enemyData.type === 'boss' || this.enemyData.bossId;
+            if (isBoss) {
+                expGain = this.enemyData.exp || 100;  // Boss給大量經驗
+                goldGain = this.enemyData.gold || 200; // Boss給大量金幣
+                this.showMessage(`👑 擊敗Boss！獲得 ${expGain} 經驗值！`);
+            } else {
+                this.showMessage(`🎉 戰鬥勝利！獲得 ${expGain} 經驗值！`);
+            }
+
+            // 播放勝利音效
             this.audio.playVictory();
-            
-            this.showMessage(`🎉 戰鬥勝利！獲得 ${expGain} 經驗值！`);
-            
+
             // 勝利動畫
             this.tweens.add({
                 targets: this.enemySprite,
@@ -693,24 +787,56 @@ class BattleScene extends Phaser.Scene {
                 scale: 0,
                 duration: 500
             });
-            
-            // 檢查升級
-            if (this.playerData.exp >= this.playerData.level * 50) {
-                this.playerData.level++;
+
+            // 檢查升級 - 使用新的100經驗值系統
+            const levelUpResult = LevelUpScene.checkLevelUp(this.playerData, expGain);
+
+            if (levelUpResult.leveledUp) {
+                this.playerData.level = levelUpResult.newLevel;
+
                 this.time.delayedCall(1500, () => {
                     this.audio.playLevelUp();
                     this.showMessage(`⭐ 升級了！達到等級 ${this.playerData.level}！`);
+
+                    // 延遲後進入升級場景
+                    this.time.delayedCall(2000, () => {
+                        this.scene.launch('LevelUpScene', {
+                            player: this.playerData,
+                            newLevel: this.playerData.level,
+                            onComplete: (result) => {
+                                this.scene.stop('LevelUpScene');
+                                this.returnToWorld();
+                            }
+                        });
+                    });
+                });
+            } else {
+                // 沒升級，直接返回
+                this.time.delayedCall(3000, () => {
+                    this.returnToWorld();
                 });
             }
         } else {
             // 失敗
             this.audio.playDefeat();
-            this.showMessage('💀 戰鬥失敗...被傳送回村莊');
-            this.playerData.hp = 1; // 保留1點HP
+            this.showMessage('💀 戰鬥失敗...');
+            this.playerData.hp = Math.floor(this.playerData.maxHp * 0.3); // 保留30% HP
+
+            this.time.delayedCall(3000, () => {
+                this.returnToWorld();
+            });
         }
-        
+
         // 保存數據
         this.game.globals.playerHP = this.playerData.hp;
+        this.game.globals.playerExp = this.playerData.exp;
+        this.game.globals.playerLevel = this.playerData.level;
+    }
+
+    returnToWorld() {
+        // 返回世界地圖
+        this.scene.start(this.returnScene);
+    };
         this.game.globals.playerExp = this.playerData.exp;
         this.game.globals.playerLevel = this.playerData.level;
         

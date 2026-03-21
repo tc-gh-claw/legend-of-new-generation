@@ -45,6 +45,8 @@ game.globals = {
     playerMaxHP: 100,
     playerMP: 50,
     playerMaxMP: 50,
+    playerAttack: 10,      // 初始攻擊力
+    playerColor: 0xffffff, // 初始顏色（白色）
     playerGold: 0,
     inventory: [],
     equipped: {},

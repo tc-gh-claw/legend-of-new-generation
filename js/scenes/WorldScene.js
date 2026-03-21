@@ -93,14 +93,7 @@ class WorldScene extends Phaser.Scene {
     createTransitionPoints() {
         this.transitions = this.physics.add.staticGroup();
         
-        // 前往村莊的入口
-        const villageExit = this.transitions.create(400, 600, 'tile-wood');
-        villageExit.setTint(0x87CEEB);
-        villageExit.targetScene = 'VillageScene';
-        villageExit.targetX = 400;
-        villageExit.targetY = 50;
-        
-        // 前往森林的入口（需要等級3以上）- 使用 game.globals 而非 this.playerData
+        // 前往森林的入口（需要等級3以上）
         if (this.game.globals.playerLevel >= 3) {
             const forestExit = this.transitions.create(780, 300, 'tile-wood');
             forestExit.setTint(0x228B22);
@@ -118,14 +111,23 @@ class WorldScene extends Phaser.Scene {
             }).setOrigin(0.5);
         }
         
-        // 出口標記
-        const villageText = this.add.text(400, 565, '🏠 前往村莊', {
-            fontSize: '14px',
-            fontFamily: 'Microsoft JhengHei',
-            fill: '#ffffff',
-            backgroundColor: '#00000088',
-            padding: { x: 5, y: 2 }
-        }).setOrigin(0.5);
+        // 前往Boss區域（需要等級8以上）
+        if (this.game.globals.playerLevel >= 8) {
+            const bossExit = this.transitions.create(400, 50, 'tile-wood');
+            bossExit.setTint(0x8B0000);
+            bossExit.targetScene = 'BossScene';
+            bossExit.targetX = 100;
+            bossExit.targetY = 300;
+            
+            // Boss標記
+            const bossText = this.add.text(400, 75, '🔥 Boss區域', {
+                fontSize: '14px',
+                fontFamily: 'Microsoft JhengHei',
+                fill: '#ff0000',
+                backgroundColor: '#00000088',
+                padding: { x: 5, y: 2 }
+            }).setOrigin(0.5);
+        }
     }
     
     onTransition(player, transition) {
@@ -206,7 +208,7 @@ class WorldScene extends Phaser.Scene {
         uiContainer.setDepth(100);
         
         // 狀態面板背景
-        const panelBg = this.add.rectangle(0, 0, 200, 100, 0x000000, 0.7);
+        const panelBg = this.add.rectangle(0, 0, 220, 130, 0x000000, 0.7);
         panelBg.setOrigin(0, 0);
         uiContainer.add(panelBg);
         
@@ -227,7 +229,7 @@ class WorldScene extends Phaser.Scene {
         uiContainer.add(this.uiLevel);
         
         // HP條
-        this.uiHpText = this.add.text(10, 55, `HP: ${this.playerData.hp}/${this.playerData.maxHp}`, {
+        this.uiHpText = this.add.text(10, 55, `❤️ ${this.playerData.hp}/${this.playerData.maxHp}`, {
             fontSize: '12px',
             fontFamily: 'Microsoft JhengHei',
             fill: '#ff6b6b'
@@ -235,12 +237,30 @@ class WorldScene extends Phaser.Scene {
         uiContainer.add(this.uiHpText);
         
         // MP條
-        this.uiMpText = this.add.text(10, 75, `MP: ${this.playerData.mp}/${this.playerData.maxMp}`, {
+        this.uiMpText = this.add.text(10, 75, `💧 ${this.playerData.mp}/${this.playerData.maxMp}`, {
             fontSize: '12px',
             fontFamily: 'Microsoft JhengHei',
             fill: '#74b9ff'
         });
         uiContainer.add(this.uiMpText);
+        
+        // EXP條 - 新系統：每100升一級
+        const expPercent = Math.floor((this.playerData.exp / 100) * 100);
+        this.uiExpText = this.add.text(10, 95, `⭐ EXP: ${this.playerData.exp}/100 (${expPercent}%)`, {
+            fontSize: '12px',
+            fontFamily: 'Microsoft JhengHei',
+            fill: '#f1c40f'
+        });
+        uiContainer.add(this.uiExpText);
+        
+        // 攻擊力顯示
+        const attack = this.game.globals.playerAttack || (10 + (this.playerData.level - 1) * 2);
+        this.uiAttackText = this.add.text(10, 115, `⚔️ 攻擊: ${attack}`, {
+            fontSize: '12px',
+            fontFamily: 'Microsoft JhengHei',
+            fill: '#e67e22'
+        });
+        uiContainer.add(this.uiAttackText);
         
         // 存檔提示
         this.saveText = this.add.text(400, 550, '', {
